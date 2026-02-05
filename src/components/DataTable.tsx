@@ -86,9 +86,18 @@ export default function DataTable({
                     <tbody>
                         {data.map((item) => (
                             <tr key={item.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors group">
-                                {columns.map((col) => (
+                                {columns.map((col, index) => (
                                     <td key={col.key} className="py-5 px-4 text-sm font-bold text-[#1a1a1a]">
-                                        {col.format ? col.format(item[col.key]) : item[col.key]}
+                                        {index === 0 && onView ? (
+                                            <button
+                                                onClick={() => onView(item)}
+                                                className="text-[#107d92] hover:underline text-left font-black"
+                                            >
+                                                {col.format ? col.format(item[col.key]) : item[col.key]}
+                                            </button>
+                                        ) : (
+                                            col.format ? col.format(item[col.key]) : item[col.key]
+                                        )}
                                     </td>
                                 ))}
                                 <td className="py-5 px-4">

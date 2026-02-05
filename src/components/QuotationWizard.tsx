@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
-import { X, ArrowRight, ArrowLeft, Check, Eye } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { X, ArrowRight, ArrowLeft, Check, Eye, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface QuotationWizardProps {
     isOpen: boolean;
@@ -56,22 +56,22 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
         }
     }, [initialData, products, clients]);
 
-    const getInitials = (str: string) => {
-        if (!str) return 'XX';
-        return str.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+    const getInitials = (clientName: string, company?: string) => {
+        const cN = clientName ? clientName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'XX';
+        const cB = company ? company.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'XX';
+        return { cN, cB };
     };
 
     const generateQuoteID = (clientName: string, clientBusiness?: string) => {
+        const { cN, cB } = getInitials(clientName, clientBusiness);
         const now = new Date();
-        const ci = getInitials(clientName);
-        const bi = getInitials(clientBusiness || 'Business Default');
-        const dateStr = (now.getMonth() + 1).toString().padStart(2, '0') +
-            now.getDate().toString().padStart(2, '0') +
-            now.getFullYear().toString().substring(2, 4) +
-            now.getHours().toString().padStart(2, '0') +
-            now.getMinutes().toString().padStart(2, '0');
+        const year = now.getFullYear().toString().substring(2);
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        const day = now.getDate().toString().padStart(2, '0');
+        // Unique suffix using time decimals to avoid collisions
+        const timeSuffix = (now.getHours() * 60 + now.getMinutes()).toString().padStart(4, '0');
 
-        return `Q-${ci}${bi}-${dateStr}`;
+        return `Q-${cN}${cB}-${day}${month}${year}-${timeSuffix}`;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -92,13 +92,12 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
             price: unitPrice,
             total,
             notes,
-            status: 'Sent',
+            status: 'To Send', // Default status as requested
             date: serverTimestamp(),
         };
 
         try {
             const docRef = await addDoc(collection(db, 'quotations'), newDoc);
-            // After successful creation, close and pass the data back to show the viewer
             onClose({ id: docRef.id, ...newDoc, date: { seconds: Date.now() / 1000 } });
         } catch (error) {
             console.error("Error creating quotation:", error);
@@ -276,7 +275,7 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
                                         disabled={loading}
                                         className="flex-[2] bg-[#107d92] text-white py-4 rounded-2xl font-black shadow-lg shadow-[#107d92]/20 flex items-center justify-center gap-2"
                                     >
-                                        {loading ? 'Saving...' : (
+                                        {loading ? <Loader2 className="animate-spin" /> : (
                                             <>
                                                 <Eye size={18} /> Review & Save
                                             </>

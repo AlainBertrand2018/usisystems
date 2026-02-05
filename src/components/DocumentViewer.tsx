@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, collection, updateDoc } from 'firebase/firestore';
-import { X, Printer, FileDown, Mail, CheckCircle2 } from 'lucide-react';
+import { doc, onSnapshot, collection, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { X, Printer, FileDown, Mail, CheckCircle2, AlertCircle, Trash2, Send } from 'lucide-react';
 import PDFDownloadButton from './pdf/PDFDownloadButton';
 
 interface DocumentViewerProps {
@@ -40,7 +40,27 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
             };
             const docRef = doc(db, collectionMap[type], data.id);
             await updateDoc(docRef, { status: newStatus });
-            alert(`Status updated to ${newStatus}`);
+
+            // Trigger Invoice generation if Quote is marked WON
+            if (type === 'QUOTATION' && newStatus === 'Won') {
+                const invRef = await addDoc(collection(db, 'invoices'), {
+                    invoiceNumber: data.quoteNumber.replace('Q-', 'INV-'),
+                    clientId: data.clientId,
+                    clientName: data.clientName,
+                    clientCompany: data.clientCompany || 'Business Default',
+                    total: data.total,
+                    status: 'pending',
+                    date: serverTimestamp(),
+                    quoteRef: data.id,
+                    productName: data.productName,
+                    qty: data.qty,
+                    price: data.price,
+                    notes: data.notes
+                });
+                alert(`Quotation WON! Invoice generated: ${data.quoteNumber.replace('Q-', 'INV-')}`);
+            } else {
+                alert(`Status updated to ${newStatus}`);
+            }
         } catch (error) {
             console.error("Update error:", error);
             alert("Failed to update status.");
@@ -56,16 +76,33 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
                 <button onClick={onClose} className="p-2 bg-gray-100 rounded-full text-gray-900 active:scale-90 transition-transform">
                     <X size={20} />
                 </button>
-                <div className="flex gap-2">
-                    {type === 'QUOTATION' && data.status !== 'Won' && (
-                        <button
-                            disabled={isUpdating}
-                            onClick={() => handleUpdateStatus('Won')}
-                            className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl font-bold text-xs"
-                        >
-                            <CheckCircle2 size={16} /> Mark Won
-                        </button>
+
+                <div className="flex items-center gap-3">
+                    {/* Status Controls for Quotation */}
+                    {type === 'QUOTATION' && (
+                        <div className="flex bg-gray-50 p-1.5 rounded-2xl gap-1 mr-4">
+                            {[
+                                { s: 'Sent', icon: Send, color: 'text-blue-600', bg: 'bg-blue-50' },
+                                { s: 'Won', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                                { s: 'Rejected', icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
+                                { s: 'Lost', icon: Trash2, color: 'text-gray-600', bg: 'bg-gray-50' }
+                            ].map((btn) => (
+                                <button
+                                    key={btn.s}
+                                    onClick={() => handleUpdateStatus(btn.s)}
+                                    disabled={isUpdating || data.status === btn.s}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${data.status === btn.s
+                                            ? `${btn.bg} ${btn.color} ring-1 ring-inset ring-current`
+                                            : 'text-gray-400 hover:bg-white'
+                                        }`}
+                                >
+                                    <btn.icon size={14} />
+                                    <span className="hidden sm:inline">{btn.s}</span>
+                                </button>
+                            ))}
+                        </div>
                     )}
+
                     <button className="p-2 bg-gray-100 rounded-xl text-gray-400 hover:text-[#107d92] transition-colors">
                         <Mail size={20} />
                     </button>
@@ -87,9 +124,9 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
                             <div>
                                 <h1 className="text-xl font-black uppercase tracking-tighter">{businessDetails?.name || 'UNIDEALS Ltd'}</h1>
                                 <p className="text-xs text-[#6c757d] whitespace-pre-line leading-relaxed">
-                                    {businessDetails?.address || 'Ebène Cybercity, Mauritius'}\n
-                                    BRN: {businessDetails?.brn || 'C12345678'}\n
-                                    VAT: {businessDetails?.vat || '20000000'}
+                                    {businessDetails?.address || 'Ebène Cybercity, Mauritius'}
+                                    {businessDetails?.brn && `\nBRN: ${businessDetails.brn}`}
+                                    {businessDetails?.vat && `\nVAT: ${businessDetails.vat}`}
                                 </p>
                             </div>
                         </div>
@@ -114,9 +151,13 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
                             <p className="text-sm text-[#6c757d] mt-1 italic">{data.clientCompany}</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-[#107d92] mb-3">Status</p>
-                            <span className="px-5 py-2 rounded-full bg-emerald-100 text-emerald-700 text-xs font-black uppercase tracking-widest">
-                                {data.status || 'Sent'}
+                            <p className="text-[10px] font-black uppercase tracking-widest text-[#107d92] mb-3">Current Status</p>
+                            <span className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest ${data.status === 'Won' ? 'bg-emerald-100 text-emerald-700' :
+                                    data.status === 'Sent' ? 'bg-blue-100 text-blue-700' :
+                                        data.status === 'Rejected' ? 'bg-rose-100 text-rose-700' :
+                                            'bg-amber-100 text-amber-700'
+                                }`}>
+                                {data.status || 'To Send'}
                             </span>
                         </div>
                     </div>
