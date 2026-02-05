@@ -46,8 +46,8 @@ export default function Sidebar() {
                             <Link
                                 href={link.href}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium ${isActive
-                                        ? 'bg-[#107d92]/10 color-[#107d92]'
-                                        : 'text-[#6c757d] hover:bg-[#107d92]/5 hover:text-[#107d92]'
+                                    ? 'bg-[#107d92]/10 color-[#107d92]'
+                                    : 'text-[#6c757d] hover:bg-[#107d92]/5 hover:text-[#107d92]'
                                     }`}
                                 style={{ color: isActive ? '#107d92' : undefined }}
                             >
@@ -68,9 +68,15 @@ export default function Sidebar() {
                             <p className="text-xs text-[#6c757d]">Administrator</p>
                         </div>
                     </div>
-                    <Link href="/" className="text-red-500 hover:scale-110 transition-transform">
+                    <button
+                        onClick={() => {
+                            localStorage.removeItem('unideals_auth');
+                            window.location.href = '/';
+                        }}
+                        className="text-[#6c757d] hover:text-rose-500 transition-colors"
+                    >
                         <LogOut size={20} />
-                    </Link>
+                    </button>
                 </div>
             </div>
         </nav>
