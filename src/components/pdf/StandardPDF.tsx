@@ -150,7 +150,7 @@ export const StandardPDF = ({ type, data, businessInfo }: PDFProps) => (
             <View style={styles.header} fixed>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Image
-                        src="/images/unideal_logo.webp"
+                        src={typeof window !== 'undefined' ? `${window.location.origin}/images/unideal_logo.webp` : '/images/unideal_logo.webp'}
                         style={{ width: 120 }}
                     />
                 </View>
