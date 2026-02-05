@@ -19,7 +19,7 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
 
     useEffect(() => {
         if (!isOpen) return;
-        const unsub = onSnapshot(collection(db, 'business_details'), (snapshot) => {
+        const unsub = onSnapshot(collection(db, 'businessdetails'), (snapshot) => {
             if (!snapshot.empty) {
                 setBusinessDetails(snapshot.docs[0].data());
             }
@@ -92,8 +92,8 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
                                     onClick={() => handleUpdateStatus(btn.s)}
                                     disabled={isUpdating || data.status === btn.s}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${data.status === btn.s
-                                            ? `${btn.bg} ${btn.color} ring-1 ring-inset ring-current`
-                                            : 'text-gray-400 hover:bg-white'
+                                        ? `${btn.bg} ${btn.color} ring-1 ring-inset ring-current`
+                                        : 'text-gray-400 hover:bg-white'
                                         }`}
                                 >
                                     <btn.icon size={14} />
@@ -126,7 +126,9 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
                                 <p className="text-xs text-[#6c757d] whitespace-pre-line leading-relaxed">
                                     {businessDetails?.address || 'Ebène Cybercity, Mauritius'}
                                     {businessDetails?.brn && `\nBRN: ${businessDetails.brn}`}
-                                    {businessDetails?.vat && `\nVAT: ${businessDetails.vat}`}
+                                    {businessDetails?.phone && `\nTel: ${businessDetails.phone}`}
+                                    {businessDetails?.email && `\nEmail: ${businessDetails.email}`}
+                                    {businessDetails?.website && `\nWeb: ${businessDetails.website}`}
                                 </p>
                             </div>
                         </div>
@@ -153,9 +155,9 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
                         <div className="text-right">
                             <p className="text-[10px] font-black uppercase tracking-widest text-[#107d92] mb-3">Current Status</p>
                             <span className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest ${data.status === 'Won' ? 'bg-emerald-100 text-emerald-700' :
-                                    data.status === 'Sent' ? 'bg-blue-100 text-blue-700' :
-                                        data.status === 'Rejected' ? 'bg-rose-100 text-rose-700' :
-                                            'bg-amber-100 text-amber-700'
+                                data.status === 'Sent' ? 'bg-blue-100 text-blue-700' :
+                                    data.status === 'Rejected' ? 'bg-rose-100 text-rose-700' :
+                                        'bg-amber-100 text-amber-700'
                                 }`}>
                                 {data.status || 'To Send'}
                             </span>

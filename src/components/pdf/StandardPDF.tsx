@@ -148,11 +148,17 @@ export const StandardPDF = ({ type, data, businessInfo }: PDFProps) => (
             <View style={styles.accentStrip} fixed />
             {/* Header */}
             <View style={styles.header} fixed>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View>
                     <Image
                         src={typeof window !== 'undefined' ? `${window.location.origin}/images/unideal_logo.webp` : '/images/unideal_logo.webp'}
-                        style={{ width: 120 }}
+                        style={{ width: 120, marginBottom: 8 }}
                     />
+                    <Text style={{ fontWeight: 'bold', fontSize: 10 }}>{businessInfo.name}</Text>
+                    <Text style={{ fontSize: 7, color: '#636e72', marginTop: 2 }}>{businessInfo.address}</Text>
+                    <Text style={{ fontSize: 7, color: '#636e72' }}>BRN: {businessInfo.brn}</Text>
+                    <Text style={{ fontSize: 7, color: '#636e72' }}>Tel: {businessInfo.phone}</Text>
+                    <Text style={{ fontSize: 7, color: '#636e72' }}>Email: {businessInfo.email}</Text>
+                    <Text style={{ fontSize: 7, color: '#636e72' }}>Web: {businessInfo.website}</Text>
                 </View>
                 <View style={styles.headerRight}>
                     <Text style={styles.docTitle}>{type}</Text>
@@ -161,20 +167,17 @@ export const StandardPDF = ({ type, data, businessInfo }: PDFProps) => (
                 </View>
             </View>
 
-            {/* Address Grid */}
+            {/* Client Info Grid */}
             <View style={styles.addressGrid}>
                 <View style={styles.addressBlock}>
-                    <Text style={styles.addressTitle}>From</Text>
-                    <Text style={{ fontWeight: 'bold' }}>{businessInfo.name}</Text>
-                    <Text>{businessInfo.address}</Text>
-                    <Text>Tel: {businessInfo.phone}</Text>
-                    <Text>{businessInfo.email}</Text>
+                    <Text style={styles.addressTitle}>Bill To</Text>
+                    <Text style={{ fontWeight: 'bold', fontSize: 11 }}>{data.clientName}</Text>
+                    <Text style={{ fontSize: 9, color: '#636e72', marginTop: 2 }}>{data.clientCompany || data.company}</Text>
+                    <Text style={{ fontSize: 9, color: '#636e72' }}>{data.clientEmail || ''}</Text>
                 </View>
                 <View style={styles.addressBlock}>
-                    <Text style={styles.addressTitle}>To Client</Text>
-                    <Text style={{ fontWeight: 'bold' }}>{data.clientName}</Text>
-                    <Text>{data.clientCompany || data.company}</Text>
-                    <Text>{data.clientEmail || 'N/A'}</Text>
+                    <Text style={styles.addressTitle}>Payment Status</Text>
+                    <Text style={{ fontWeight: 'bold', color: '#107d92', fontSize: 10 }}>{data.status || 'Pending'}</Text>
                 </View>
             </View>
 

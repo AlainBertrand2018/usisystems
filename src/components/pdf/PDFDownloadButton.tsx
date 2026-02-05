@@ -8,7 +8,7 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
 interface PDFDownloadButtonProps {
-    type: string;
+    type: 'QUOTATION' | 'INVOICE' | 'RECEIPT' | 'STATEMENT';
     data: any;
     fileName?: string;
     showLabel?: boolean;
@@ -19,12 +19,16 @@ export default function PDFDownloadButton({ type, data, fileName, showLabel = fa
     const [businessInfo, setBusinessInfo] = useState<any>({
         name: 'UNIDEALS Ltd',
         address: 'Mauritius',
-        brn: 'C12345678'
+        brn: 'C12345678',
+        phone: '',
+        email: '',
+        website: ''
     });
 
     useEffect(() => {
         setIsClient(true);
-        const unsub = onSnapshot(collection(db, 'business_details'), (snapshot) => {
+        // Correct collection name: businessdetails
+        const unsub = onSnapshot(collection(db, 'businessdetails'), (snapshot) => {
             if (!snapshot.empty) {
                 setBusinessInfo(snapshot.docs[0].data());
             }
