@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Plus } from 'lucide-react';
@@ -9,9 +10,17 @@ import QuotationWizard from '@/components/QuotationWizard';
 import DocumentViewer from '@/components/DocumentViewer';
 
 export default function QuotationsPage() {
+    const searchParams = useSearchParams();
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [wizardData, setWizardData] = useState<any>(null);
     const [viewItem, setViewItem] = useState<any>(null);
+
+    // Automatically open wizard if redirected from Splash with action=new
+    useEffect(() => {
+        if (searchParams.get('action') === 'new') {
+            setIsWizardOpen(true);
+        }
+    }, [searchParams]);
 
     const columns = [
         { key: 'quoteNumber', label: 'Quotation ID' },
@@ -46,6 +55,15 @@ export default function QuotationsPage() {
     const handleClone = (item: any) => {
         setWizardData(item);
         setIsWizardOpen(true);
+    };
+
+    const closeWizard = (newDoc?: any) => {
+        setIsWizardOpen(false);
+        setWizardData(null);
+        // If a document was just created, open the viewer immediately
+        if (newDoc) {
+            setViewItem(newDoc);
+        }
     };
 
     const handleConvert = async (item: any) => {
@@ -104,7 +122,7 @@ export default function QuotationsPage() {
 
             <QuotationWizard
                 isOpen={isWizardOpen}
-                onClose={() => setIsWizardOpen(false)}
+                onClose={closeWizard}
                 initialData={wizardData}
             />
 

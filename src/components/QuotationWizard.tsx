@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
-import { X, ArrowRight, ArrowLeft, Plus, Check } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { X, ArrowRight, ArrowLeft, Check, Eye } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface QuotationWizardProps {
     isOpen: boolean;
-    onClose: () => void;
+    onClose: (newDoc?: any) => void;
     initialData?: any;
 }
 
@@ -16,6 +16,7 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
     const [step, setStep] = useState(1);
     const [products, setProducts] = useState<any[]>([]);
     const [clients, setClients] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
 
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [selectedClient, setSelectedClient] = useState<any>(null);
@@ -64,7 +65,6 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
         const now = new Date();
         const ci = getInitials(clientName);
         const bi = getInitials(clientBusiness || 'Business Default');
-
         const dateStr = (now.getMonth() + 1).toString().padStart(2, '0') +
             now.getDate().toString().padStart(2, '0') +
             now.getFullYear().toString().substring(2, 4) +
@@ -76,29 +76,35 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setLoading(true);
 
         const total = qty * unitPrice;
         const quoteId = generateQuoteID(selectedClient.name, selectedClient.company);
 
+        const newDoc = {
+            quoteNumber: quoteId,
+            clientId: selectedClient.id,
+            clientName: selectedClient.name,
+            clientCompany: selectedClient.company || 'Business Default',
+            productId: selectedProduct.id,
+            productName: selectedProduct.name,
+            qty,
+            price: unitPrice,
+            total,
+            notes,
+            status: 'Sent',
+            date: serverTimestamp(),
+        };
+
         try {
-            await addDoc(collection(db, 'quotations'), {
-                quoteNumber: quoteId,
-                clientId: selectedClient.id,
-                clientName: selectedClient.name,
-                clientCompany: selectedClient.company || 'Business Default',
-                productId: selectedProduct.id,
-                productName: selectedProduct.name,
-                qty,
-                price: unitPrice,
-                total,
-                notes,
-                status: 'Sent',
-                date: serverTimestamp(),
-            });
-            onClose();
+            const docRef = await addDoc(collection(db, 'quotations'), newDoc);
+            // After successful creation, close and pass the data back to show the viewer
+            onClose({ id: docRef.id, ...newDoc, date: { seconds: Date.now() / 1000 } });
         } catch (error) {
             console.error("Error creating quotation:", error);
-            alert("Error creating quotation. Check console for details.");
+            alert("Error creating quotation.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -121,7 +127,7 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
                             </h2>
                             <p className="text-[#6c757d] text-xs lg:text-sm mt-1 font-medium italic opacity-70">Guided Proposal Engine</p>
                         </div>
-                        <button onClick={onClose} className="w-10 h-10 bg-gray-50 flex items-center justify-center rounded-full transition-colors text-gray-400 hover:text-gray-900 border border-gray-100">
+                        <button onClick={() => onClose()} className="w-10 h-10 bg-gray-50 flex items-center justify-center rounded-full transition-colors text-gray-400 hover:text-gray-900 border border-gray-100">
                             <X size={20} />
                         </button>
                     </div>
@@ -132,8 +138,7 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
 
                         {[1, 2, 3].map((s) => (
                             <div key={s} className="relative z-10 flex flex-col items-center">
-                                <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-full flex items-center justify-center font-bold text-sm lg:text-base transition-all duration-300 ${step >= s ? 'bg-[#107d92] text-white' : 'bg-white border-4 border-gray-50 text-gray-300'
-                                    }`}>
+                                <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-full flex items-center justify-center font-bold text-sm lg:text-base transition-all duration-300 ${step >= s ? 'bg-[#107d92] text-white' : 'bg-white border-4 border-gray-50 text-gray-300'}`}>
                                     {step > s ? <Check size={16} /> : s}
                                 </div>
                             </div>
@@ -157,8 +162,7 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
                                                 }}
                                                 className={`p-5 lg:p-6 rounded-2xl border-2 text-left transition-all active:scale-95 ${selectedProduct?.id === p.id
                                                     ? 'border-[#107d92] bg-[#107d92]/5 ring-4 ring-[#107d92]/10'
-                                                    : 'border-gray-50 hover:border-gray-200 bg-gray-50/30'
-                                                    }`}
+                                                    : 'border-gray-50 hover:border-gray-200 bg-gray-50/30'}`}
                                             >
                                                 <div className="flex justify-between items-center">
                                                     <div>
@@ -189,8 +193,7 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
                                                 }}
                                                 className={`p-5 lg:p-6 rounded-2xl border-2 text-left transition-all active:scale-95 ${selectedClient?.id === c.id
                                                     ? 'border-[#107d92] bg-[#107d92]/5 ring-4 ring-[#107d92]/10'
-                                                    : 'border-gray-50 hover:border-gray-200 bg-gray-50/30'
-                                                    }`}
+                                                    : 'border-gray-50 hover:border-gray-200 bg-gray-50/30'}`}
                                             >
                                                 <div className="flex justify-between items-center">
                                                     <div>
@@ -204,7 +207,7 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
                                     </div>
                                 </div>
                                 <button type="button" onClick={() => setStep(1)} className="flex items-center gap-2 text-[#6c757d] font-bold text-sm lg:text-base">
-                                    <ArrowLeft size={16} /> Change Product
+                                    <ArrowLeft size={16} /> Back
                                 </button>
                             </div>
                         )}
@@ -261,11 +264,23 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
                                 </div>
 
                                 <div className="flex gap-4">
-                                    <button type="button" onClick={() => setStep(2)} className="flex-1 py-4 border-2 border-gray-100 rounded-2xl font-black text-[#6c757d] active:scale-95 transition-all">
+                                    <button
+                                        type="button"
+                                        onClick={() => setStep(2)}
+                                        className="flex-1 py-4 border-2 border-gray-100 rounded-2xl font-black text-[#6c757d]"
+                                    >
                                         Back
                                     </button>
-                                    <button type="submit" className="flex-[2] bg-[#107d92] text-white py-4 rounded-2xl font-black active:scale-95 transition-all shadow-lg shadow-[#107d92]/20">
-                                        {initialData ? 'Update' : 'Generate'}
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="flex-[2] bg-[#107d92] text-white py-4 rounded-2xl font-black shadow-lg shadow-[#107d92]/20 flex items-center justify-center gap-2"
+                                    >
+                                        {loading ? 'Saving...' : (
+                                            <>
+                                                <Eye size={18} /> Review & Save
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             </div>

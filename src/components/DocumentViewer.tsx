@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, collection } from 'firebase/firestore';
-import { X, Printer, FileDown, Mail } from 'lucide-react';
+import { doc, onSnapshot, collection, updateDoc } from 'firebase/firestore';
+import { X, Printer, FileDown, Mail, CheckCircle2 } from 'lucide-react';
 import PDFDownloadButton from './pdf/PDFDownloadButton';
 
 interface DocumentViewerProps {
@@ -15,6 +15,7 @@ interface DocumentViewerProps {
 
 export default function DocumentViewer({ isOpen, onClose, type, data }: DocumentViewerProps) {
     const [businessDetails, setBusinessDetails] = useState<any>(null);
+    const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -28,6 +29,26 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
 
     if (!isOpen || !data) return null;
 
+    const handleUpdateStatus = async (newStatus: string) => {
+        if (!data.id) return;
+        setIsUpdating(true);
+        try {
+            const collectionMap: any = {
+                'QUOTATION': 'quotations',
+                'INVOICE': 'invoices',
+                'RECEIPT': 'receipts'
+            };
+            const docRef = doc(db, collectionMap[type], data.id);
+            await updateDoc(docRef, { status: newStatus });
+            alert(`Status updated to ${newStatus}`);
+        } catch (error) {
+            console.error("Update error:", error);
+            alert("Failed to update status.");
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-[100] bg-white flex flex-col font-sans overflow-hidden lg:inset-10 lg:rounded-[40px] lg:shadow-2xl lg:border lg:border-gray-200">
             {/* Action Bar */}
@@ -36,10 +57,16 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
                     <X size={20} />
                 </button>
                 <div className="flex gap-2">
-                    <button className="p-2 bg-gray-100 rounded-xl text-gray-400">
-                        <Printer size={20} />
-                    </button>
-                    <button className="p-2 bg-gray-100 rounded-xl text-gray-400">
+                    {type === 'QUOTATION' && data.status !== 'Won' && (
+                        <button
+                            disabled={isUpdating}
+                            onClick={() => handleUpdateStatus('Won')}
+                            className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl font-bold text-xs"
+                        >
+                            <CheckCircle2 size={16} /> Mark Won
+                        </button>
+                    )}
+                    <button className="p-2 bg-gray-100 rounded-xl text-gray-400 hover:text-[#107d92] transition-colors">
                         <Mail size={20} />
                     </button>
                     <PDFDownloadButton type={type} data={data} showLabel={true} />
@@ -69,7 +96,11 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
                         <div className="text-right">
                             <h2 className="text-4xl font-black text-[#107d92] uppercase opacity-10 mb-2">{type}</h2>
                             <p className="text-sm font-black">{data.quoteNumber || data.invoiceNumber || data.receiptNumber || 'DOC-REF'}</p>
-                            <p className="text-xs text-[#6c757d] mt-1">{new Date(data.date?.seconds * 1000).toLocaleDateString()}</p>
+                            <p className="text-xs text-[#6c757d] mt-1">
+                                {data.date?.seconds
+                                    ? new Date(data.date.seconds * 1000).toLocaleDateString('en-GB')
+                                    : new Date().toLocaleDateString('en-GB')}
+                            </p>
                         </div>
                     </div>
 
@@ -85,7 +116,7 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
                         <div className="text-right">
                             <p className="text-[10px] font-black uppercase tracking-widest text-[#107d92] mb-3">Status</p>
                             <span className="px-5 py-2 rounded-full bg-emerald-100 text-emerald-700 text-xs font-black uppercase tracking-widest">
-                                {data.status || 'Pending'}
+                                {data.status || 'Sent'}
                             </span>
                         </div>
                     </div>
