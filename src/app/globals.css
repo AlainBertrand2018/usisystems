@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --primary-color: #107d92;
+    --secondary-color: #f8f9fa;
+    --text-main: #1a1a1a;
+    --text-muted: #6c757d;
+    --white: #ffffff;
+    --font-family: 'Outfit', sans-serif;
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --shadow-premium: 0 20px 40px rgba(16, 125, 146, 0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--white);
+    color: var(--text-main);
+}
+
+/* Sidebar */
+.sidebar {
+    background-color: var(--white);
+    border-right: 1px solid #eef2f3;
+}
+
+.nav-links li.active a,
+.nav-links a:hover {
+    background-color: rgba(16, 125, 146, 0.08);
+    color: var(--primary-color);
+}
+
+/* Content Cards */
+.content-card {
+    background: var(--white);
+    border-radius: 24px;
+    padding: 1.8rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+}
+
+/* Modals */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.status-badge {
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.status-to-send {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.status-sent {
+    background-color: rgba(0, 191, 255, 0.1);
+    color: #00bfff;
+}
+
+.status-won {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+}
+
+.status-rejected {
+    background-color: rgba(253, 126, 20, 0.1);
+    color: #fd7e14;
+}
+
+.status-lost {
+    background-color: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
+}
+
+.status-select {
+    padding: 0.4rem 2rem 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    appearance: none;
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+    background-size: 0.8rem;
+    transition: var(--transition-smooth);
+}
+
+.status-select.status-to-send {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23dc3545' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+.status-select.status-sent {
+    background-color: rgba(0, 191, 255, 0.1);
+    color: #00bfff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2300bfff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+/* ... etc ... Add more if needed, but keeping it concise for now */

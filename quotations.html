@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quotations | UniDeals CRM</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="dashboard-body">
+    <!-- Sidebar / Bottom Nav (Mobile) -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <img src="public/images/unideal_logo.webp" alt="Logo" class="nav-logo">
+        </div>
+        <ul class="nav-links">
+            <li><a href="dashboard.html"><i class="fas fa-th-large"></i> <span>Overview</span></a></li>
+            <li><a href="products.html"><i class="fas fa-box"></i> <span>Products</span></a></li>
+            <li><a href="clients.html"><i class="fas fa-users"></i> <span>Clients</span></a></li>
+            <li class="active"><a href="quotations.html"><i class="fas fa-file-invoice"></i> <span>Quotations</span></a>
+            </li>
+            <li><a href="invoices.html"><i class="fas fa-file-invoice-dollar"></i> <span>Invoices</span></a></li>
+            <li><a href="receipts.html"><i class="fas fa-receipt"></i> <span>Receipts</span></a></li>
+            <li><a href="statements.html"><i class="fas fa-chart-line"></i> <span>Statements</span></a></li>
+            <li><a href="users.html"><i class="fas fa-user-shield"></i> <span>Users</span></a></li>
+            <li><a href="appointments.html"><i class="fas fa-calendar-alt"></i> <span>Appointments</span></a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <div class="avatar">A</div>
+                <div class="user-info">
+                    <span class="user-name">Business Admin</span>
+                    <span class="user-role">Administrator</span>
+                </div>
+            </div>
+            <a href="index.html" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <header class="main-header">
+            <div class="header-titles">
+                <h1>Quotations</h1>
+                <p>Manage your business proposals</p>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn"><i class="fas fa-search"></i></button>
+                <button class="add-btn"><i class="fas fa-plus"></i> <span>New</span></button>
+            </div>
+        </header>
+
+        <section class="dashboard-content">
+            <div class="content-card">
+                <div class="card-header">
+                    <h2>All Quotations</h2>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Quotation ID</th>
+                                <th>Client Business</th>
+                                <th>Date</th>
+                                <th>Value (MUR)</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="quotations-tbody">
+                            <!-- Quotations will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- New Quotation Modal (Wizard) -->
+    <div id="quote-modal" class="modal">
+        <div class="modal-content wizard-modal">
+            <span class="close-btn" id="close-quote">&times;</span>
+            <div class="wizard-progress">
+                <div class="step-indicator active" data-step="1">1</div>
+                <div class="progress-line"></div>
+                <div class="step-indicator" data-step="2">2</div>
+                <div class="progress-line"></div>
+                <div class="step-indicator" data-step="3">3</div>
+            </div>
+            <form id="quote-form">
+                <div class="wizard-step active" id="step-1">
+                    <div class="modal-header">
+                        <h2>Step 1: Select Product</h2>
+                    </div>
+                    <div class="input-group">
+                        <label for="product-select">Product/Service</label>
+                        <div class="select-with-btn">
+                            <select id="product-select" required>
+                                <option value="">Loading products...</option>
+                            </select>
+                            <button type="button" class="quick-add-btn" id="add-new-product"><i
+                                    class="fas fa-plus"></i></button>
+                        </div>
+                    </div>
+                    <div class="step-actions">
+                        <button type="button" class="next-btn" id="to-step-2">Continue <i
+                                class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+                <div class="wizard-step" id="step-2">
+                    <div class="modal-header">
+                        <h2>Step 2: Select Client</h2>
+                    </div>
+                    <div class="input-group">
+                        <label for="client-select">Client</label>
+                        <div class="select-with-btn">
+                            <select id="client-select" required>
+                                <option value="">Loading clients...</option>
+                            </select>
+                            <button type="button" class="quick-add-btn" id="add-new-client"><i
+                                    class="fas fa-plus"></i></button>
+                        </div>
+                    </div>
+                    <div class="step-actions">
+                        <button type="button" class="back-btn" id="back-to-step-1">Back</button>
+                        <button type="button" class="next-btn" id="to-step-3">Continue <i
+                                class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+                <div class="wizard-step" id="step-3">
+                    <div class="modal-header">
+                        <h2>Step 3: Review</h2>
+                    </div>
+                    <div class="review-details">
+                        <div class="review-item"><strong>For:</strong> <span id="review-client"></span></div>
+                        <div class="review-item"><strong>Item:</strong> <span id="review-product"></span></div>
+                    </div>
+                    <div class="input-row" style="display: flex; gap: 1rem;">
+                        <input type="number" id="qty" value="1" style="flex:1">
+                        <input type="number" id="unit-price" placeholder="0.00" style="flex:2">
+                    </div>
+                    <div class="quote-summary">
+                        <div class="summary-line">
+                            <span>Total:</span>
+                            <strong id="quote-total">MUR 0.00</strong>
+                        </div>
+                    </div>
+                    <div class="step-actions">
+                        <button type="button" class="back-btn" id="back-to-step-2">Back</button>
+                        <button type="submit" class="submit-btn">Create</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+
+</html>

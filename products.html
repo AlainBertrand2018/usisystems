@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dashboard | UniDeals CRM</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="dashboard-body">
+    <!-- Sidebar / Bottom Nav (Mobile) -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <img src="public/images/unideal_logo.webp" alt="Logo" class="nav-logo">
+        </div>
+        <ul class="nav-links">
+            <li><a href="dashboard.html"><i class="fas fa-th-large"></i> <span>Overview</span></a></li>
+            <li class="active"><a href="products.html"><i class="fas fa-box"></i> <span>Products</span></a></li>
+            <li><a href="clients.html"><i class="fas fa-users"></i> <span>Clients</span></a></li>
+            <li><a href="quotations.html"><i class="fas fa-file-invoice"></i> <span>Quotations</span></a></li>
+            <li><a href="invoices.html"><i class="fas fa-file-invoice-dollar"></i> <span>Invoices</span></a></li>
+            <li><a href="receipts.html"><i class="fas fa-receipt"></i> <span>Receipts</span></a></li>
+            <li><a href="statements.html"><i class="fas fa-chart-line"></i> <span>Statements</span></a></li>
+            <li><a href="users.html"><i class="fas fa-user-shield"></i> <span>Users</span></a></li>
+            <li><a href="appointments.html"><i class="fas fa-calendar-alt"></i> <span>Appointments</span></a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <div class="avatar">A</div>
+                <div class="user-info">
+                    <span class="user-name">Business Admin</span>
+                    <span class="user-role">Administrator</span>
+                </div>
+            </div>
+            <a href="index.html" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <header class="main-header">
+            <div class="header-titles">
+                <h1>Products</h1>
+                <p>Tuesday, 5 February 2026</p>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn"><i class="fas fa-search"></i></button>
+                <button class="icon-btn"><i class="fas fa-bell"></i></button>
+                <button class="add-btn"><i class="fas fa-plus"></i> <span>New</span></button>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-info">
+                    <span class="stat-label">Total Revenue</span>
+                    <h3 class="stat-value">MUR 45,000</h3>
+                </div>
+                <div class="stat-icon rev"><i class="fas fa-dollar-sign"></i></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info">
+                    <span class="stat-label">Active Quotations</span>
+                    <h3 class="stat-value">12</h3>
+                </div>
+                <div class="stat-icon quote"><i class="fas fa-file-alt"></i></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info">
+                    <span class="stat-label">New Clients</span>
+                    <h3 class="stat-value">24</h3>
+                </div>
+                <div class="stat-icon client"><i class="fas fa-user-plus"></i></div>
+            </div>
+        </section>
+
+        <!-- Recent Activity & Records -->
+        <section class="dashboard-content">
+            <div class="content-card">
+                <div class="card-header">
+                    <h2>Recent Quotations</h2>
+                    <a href="#" class="view-all">View All</a>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Quotation ID</th>
+                                <th>Client Business</th>
+                                <th>Date</th>
+                                <th>Value (MUR)</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="quotations-tbody">
+                            <!-- Quotations will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- New Quotation Modal (Wizard) -->
+    <div id="quote-modal" class="modal">
+        <div class="modal-content wizard-modal">
+            <span class="close-btn" id="close-quote">&times;</span>
+
+            <!-- Wizard Steps Progress -->
+            <div class="wizard-progress">
+                <div class="step-indicator active" data-step="1">1</div>
+                <div class="progress-line"></div>
+                <div class="step-indicator" data-step="2">2</div>
+                <div class="progress-line"></div>
+                <div class="step-indicator" data-step="3">3</div>
+            </div>
+
+            <form id="quote-form">
+                <!-- Step 1: Product Selection -->
+                <div class="wizard-step active" id="step-1">
+                    <div class="modal-header">
+                        <h2>Step 1: Select Product</h2>
+                        <p>What product or service are you proposing?</p>
+                    </div>
+                    <div class="input-group">
+                        <label for="product-select">Product/Service</label>
+                        <div class="select-with-btn">
+                            <select id="product-select" required>
+                                <option value="">Loading products...</option>
+                            </select>
+                            <button type="button" class="quick-add-btn" id="add-new-product"><i
+                                    class="fas fa-plus"></i></button>
+                        </div>
+                    </div>
+                    <div class="step-actions">
+                        <button type="button" class="next-btn" id="to-step-2">Continue <i
+                                class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Client Selection -->
+                <div class="wizard-step" id="step-2">
+                    <div class="modal-header">
+                        <h2>Step 2: Select Client</h2>
+                        <p>Who is this quotation for?</p>
+                    </div>
+                    <div class="input-group">
+                        <label for="client-select">Client</label>
+                        <div class="select-with-btn">
+                            <select id="client-select" required>
+                                <option value="">Loading clients...</option>
+                            </select>
+                            <button type="button" class="quick-add-btn" id="add-new-client"><i
+                                    class="fas fa-plus"></i></button>
+                        </div>
+                    </div>
+                    <div class="step-actions">
+                        <button type="button" class="back-btn" id="back-to-step-1"><i class="fas fa-arrow-left"></i>
+                            Back</button>
+                        <button type="button" class="next-btn" id="to-step-3">Continue <i
+                                class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Finalize & Review -->
+                <div class="wizard-step" id="step-3">
+                    <div class="modal-header">
+                        <h2>Step 3: Finalize Quotation</h2>
+                        <p>Review the details and add final values</p>
+                    </div>
+                    <div class="review-details">
+                        <div class="review-item"><strong>For:</strong> <span id="review-client">Select a client</span>
+                        </div>
+                        <div class="review-item"><strong>Item:</strong> <span id="review-product">Select a
+                                product</span></div>
+                    </div>
+                    <div class="input-row" style="display: flex; gap: 1rem;">
+                        <div class="input-group" style="flex: 1;">
+                            <label for="qty">Quantity</label>
+                            <input type="number" id="qty" value="1" min="1">
+                        </div>
+                        <div class="input-group" style="flex: 2;">
+                            <label for="unit-price">Unit Price (MUR)</label>
+                            <input type="number" id="unit-price" placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="quote-description">Additional Notes (Optional)</label>
+                        <textarea id="quote-description" placeholder="Any specific terms or options..."></textarea>
+                    </div>
+                    <div class="quote-summary">
+                        <div class="summary-line">
+                            <span>Total Amount:</span>
+                            <strong id="quote-total">MUR 0.00</strong>
+                        </div>
+                    </div>
+                    <div class="step-actions">
+                        <button type="button" class="back-btn" id="back-to-step-2"><i class="fas fa-arrow-left"></i>
+                            Back</button>
+                        <button type="submit" class="submit-btn" style="background-color: var(--primary-color);">Create
+                            Quotation</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quick Add Product Modal -->
+    <div id="new-product-modal" class="modal sub-modal">
+        <div class="modal-content sm-modal">
+            <span class="close-btn" id="close-product-modal">&times;</span>
+            <div class="modal-header">
+                <h2>New Product</h2>
+            </div>
+            <form id="new-product-form">
+                <div class="input-group">
+                    <label for="new-p-name">Product Name</label>
+                    <input type="text" id="new-p-name" required>
+                </div>
+                <div class="input-group">
+                    <label for="new-p-price">Default Price (MUR)</label>
+                    <input type="number" id="new-p-price" required>
+                </div>
+                <button type="submit" class="submit-btn">Save Product</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quick Add Client Modal -->
+    <div id="new-client-modal" class="modal sub-modal">
+        <div class="modal-content sm-modal">
+            <span class="close-btn" id="close-client-modal">&times;</span>
+            <div class="modal-header">
+                <h2>New Client</h2>
+            </div>
+            <form id="new-client-form">
+                <div class="input-group">
+                    <label for="new-c-name">Client Name</label>
+                    <input type="text" id="new-c-name" required>
+                </div>
+                <div class="input-group">
+                    <label for="new-c-email">Email</label>
+                    <input type="email" id="new-c-email">
+                </div>
+                <button type="submit" class="submit-btn">Save Client</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+
+</html>
