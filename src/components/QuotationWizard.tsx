@@ -178,7 +178,7 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
                             <div className="space-y-4 lg:space-y-6">
                                 <div>
                                     <label className="block text-[10px] font-black text-[#6c757d] uppercase tracking-[0.2em] mb-4">Select Client</label>
-                                    <div className="grid grid-cols-1 gap-3 lg:gap-4">
+                                    <div className="flex flex-col gap-3 lg:gap-4 w-full">
                                         {clients.map((c) => (
                                             <button
                                                 key={c.id}

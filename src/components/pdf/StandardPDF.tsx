@@ -148,14 +148,11 @@ export const StandardPDF = ({ type, data, businessInfo }: PDFProps) => (
             <View style={styles.accentStrip} fixed />
             {/* Header */}
             <View style={styles.header} fixed>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <View style={{ width: 30, height: 30, backgroundColor: '#107d92', borderRadius: 6, justifyContent: 'center', alignItems: 'center' }}>
-                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>U</Text>
-                    </View>
-                    <View>
-                        <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#107d92', letterSpacing: 0.5 }}>UNIDEALS</Text>
-                        <Text style={{ fontSize: 7, color: '#b2bec3', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>{businessInfo.tagline || 'Business CRM'}</Text>
-                    </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Image
+                        src="/images/unideal_logo.webp"
+                        style={{ width: 120 }}
+                    />
                 </View>
                 <View style={styles.headerRight}>
                     <Text style={styles.docTitle}>{type}</Text>

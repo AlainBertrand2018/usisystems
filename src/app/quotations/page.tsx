@@ -3,19 +3,21 @@
 import { useState } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { Plus, FileCheck } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import DataTable from '@/components/DataTable';
 import QuotationWizard from '@/components/QuotationWizard';
+import DocumentViewer from '@/components/DocumentViewer';
 
 export default function QuotationsPage() {
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [wizardData, setWizardData] = useState<any>(null);
+    const [viewItem, setViewItem] = useState<any>(null);
 
     const columns = [
         { key: 'quoteNumber', label: 'Quotation ID' },
         { key: 'clientName', label: 'Client' },
         { key: 'clientCompany', label: 'Business' },
-        { key: 'date', label: 'Date', format: (val: any) => val?.seconds ? new Date(val.seconds * 1000).toLocaleDateString() : 'N/A' },
+        { key: 'date', label: 'Date', format: (val: any) => val?.seconds ? new Date(val.seconds * 1000).toLocaleDateString('en-GB') : 'N/A' },
         { key: 'total', label: 'Value', format: (val: number) => `MUR ${val?.toLocaleString()}` },
         {
             key: 'status',
@@ -50,11 +52,9 @@ export default function QuotationsPage() {
         if (!confirm(`Convert ${item.quoteNumber} to an official Invoice?`)) return;
 
         try {
-            // 1. Update Quotation Status
             const quoteRef = doc(db, 'quotations', item.id);
             await updateDoc(quoteRef, { status: 'Won' });
 
-            // 2. Create New Invoice
             await addDoc(collection(db, 'invoices'), {
                 invoiceNumber: item.quoteNumber.replace('Q-', 'INV-'),
                 clientId: item.clientId,
@@ -64,33 +64,31 @@ export default function QuotationsPage() {
                 status: 'pending',
                 date: serverTimestamp(),
                 quoteRef: item.id,
-                items: [{
-                    name: item.productName,
-                    qty: item.qty,
-                    price: item.price,
-                    total: item.total
-                }]
+                productName: item.productName,
+                qty: item.qty,
+                price: item.price,
+                notes: item.notes
             });
 
-            alert(`Success! Invoice ${item.quoteNumber.replace('Q-', 'INV-')} has been generated.`);
+            alert(`Success! Invoice generated.`);
         } catch (error) {
             console.error("Conversion error:", error);
-            alert("Process failed. Check your connection or permissions.");
+            alert("Process failed.");
         }
     };
 
     return (
-        <div className="space-y-8 pb-10">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-4 text-left">
+        <div className="space-y-6 lg:space-y-8 pb-10">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-4">
                 <div>
-                    <h1 className="text-3xl font-black text-[#1a1a1a]">Quotations</h1>
-                    <p className="text-[#6c757d] text-sm mt-1 font-medium">Generate and track your business proposals</p>
+                    <h1 className="text-2xl lg:text-3xl font-black text-[#1a1a1a]">Quotations</h1>
+                    <p className="text-[#6c757d] text-sm font-medium mt-1">Manage proposals and closing</p>
                 </div>
                 <button
                     onClick={handleNew}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#107d92] text-white px-8 py-4 rounded-2xl font-black hover:scale-105 active:scale-95 transition-all shadow-lg shadow-[#107d92]/20"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#107d92] text-white px-8 py-4 rounded-[20px] font-black shadow-lg shadow-[#107d92]/20 active:scale-95 transition-all text-sm"
                 >
-                    <Plus size={20} />
+                    <Plus size={18} />
                     <span>New Quote</span>
                 </button>
             </div>
@@ -100,6 +98,7 @@ export default function QuotationsPage() {
                 columns={columns}
                 onClone={handleClone}
                 onConvert={handleConvert}
+                onView={(item) => setViewItem(item)}
                 pdfType="QUOTATION"
             />
 
@@ -107,6 +106,13 @@ export default function QuotationsPage() {
                 isOpen={isWizardOpen}
                 onClose={() => setIsWizardOpen(false)}
                 initialData={wizardData}
+            />
+
+            <DocumentViewer
+                isOpen={!!viewItem}
+                onClose={() => setViewItem(null)}
+                type="QUOTATION"
+                data={viewItem}
             />
         </div>
     );

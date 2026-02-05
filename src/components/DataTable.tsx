@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { Edit2, FileDown, AlertCircle, Copy, FileCheck } from 'lucide-react';
+import { collection, onSnapshot, query } from 'firebase/firestore';
+import { Edit2, FileDown, AlertCircle, Copy, FileCheck, Eye } from 'lucide-react';
 import PDFDownloadButton from './pdf/PDFDownloadButton';
 
 interface DataTableProps {
@@ -13,17 +13,26 @@ interface DataTableProps {
     onClone?: (item: any) => void;
     onDownload?: (item: any) => void;
     onConvert?: (item: any) => void;
+    onView?: (item: any) => void;
     pdfType?: 'QUOTATION' | 'INVOICE' | 'RECEIPT' | 'STATEMENT';
 }
 
-export default function DataTable({ collectionName, columns, onEdit, onClone, onDownload, onConvert, pdfType }: DataTableProps) {
+export default function DataTable({
+    collectionName,
+    columns,
+    onEdit,
+    onClone,
+    onDownload,
+    onConvert,
+    onView,
+    pdfType
+}: DataTableProps) {
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         setError(null);
-        // Using a basic query first to avoid index requirements for now
         const q = query(collection(db, collectionName));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -35,11 +44,7 @@ export default function DataTable({ collectionName, columns, onEdit, onClone, on
             setLoading(false);
         }, (err) => {
             console.error(`Firestore error in ${collectionName}:`, err);
-            if (err.code === 'permission-denied') {
-                setError("Access denied. Please check your Firestore security rules.");
-            } else {
-                setError(err.message);
-            }
+            setError(err.message);
             setLoading(false);
         });
 
@@ -65,29 +70,34 @@ export default function DataTable({ collectionName, columns, onEdit, onClone, on
     }
 
     return (
-        <div className="bg-white rounded-[24px] p-8 shadow-sm">
-            <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+        <div className="bg-white rounded-[24px] p-6 lg:p-8 shadow-sm">
+            <div className="overflow-x-auto no-scrollbar">
+                <table className="w-full text-left border-collapse min-w-[600px]">
                     <thead>
                         <tr className="border-b border-gray-100">
                             {columns.map((col) => (
-                                <th key={col.key} className="pb-4 px-4 text-sm font-black text-[#6c757d] uppercase tracking-widest">
+                                <th key={col.key} className="pb-4 px-4 text-[10px] font-black text-[#6c757d] uppercase tracking-widest whitespace-nowrap">
                                     {col.label}
                                 </th>
                             ))}
-                            <th className="pb-4 px-4 text-sm font-black text-[#6c757d] uppercase tracking-widest">Actions</th>
+                            <th className="pb-4 px-4 text-[10px] font-black text-[#6c757d] uppercase tracking-widest text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {data.map((item) => (
                             <tr key={item.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors group">
                                 {columns.map((col) => (
-                                    <td key={col.key} className="py-5 px-4 text-[15px] font-medium text-[#2d3436]">
+                                    <td key={col.key} className="py-5 px-4 text-sm font-bold text-[#1a1a1a]">
                                         {col.format ? col.format(item[col.key]) : item[col.key]}
                                     </td>
                                 ))}
                                 <td className="py-5 px-4">
-                                    <div className="flex gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                                    <div className="flex justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                                        {onView && (
+                                            <button onClick={() => onView(item)} className="p-2 bg-gray-100 rounded-xl text-[#6c757d] hover:text-[#107d92] hover:bg-[#107d92]/10 transition-all">
+                                                <Eye size={16} />
+                                            </button>
+                                        )}
                                         {onEdit && (
                                             <button onClick={() => onEdit(item)} className="p-2 bg-gray-100 rounded-xl text-[#6c757d] hover:text-[#107d92] hover:bg-[#107d92]/10 transition-all">
                                                 <Edit2 size={16} />
@@ -107,7 +117,7 @@ export default function DataTable({ collectionName, columns, onEdit, onClone, on
                                             </button>
                                         )}
                                         {pdfType ? (
-                                            <PDFDownloadButton type={pdfType} data={item} />
+                                            <PDFDownloadButton type={pdfType} data={item} showLabel={false} />
                                         ) : onDownload && (
                                             <button onClick={() => onDownload(item)} className="p-2 bg-gray-100 rounded-xl text-[#6c757d] hover:text-[#107d92] hover:bg-[#107d92]/10 transition-all">
                                                 <FileDown size={16} />
@@ -121,7 +131,7 @@ export default function DataTable({ collectionName, columns, onEdit, onClone, on
                 </table>
             </div>
             {data.length === 0 && (
-                <div className="py-20 text-center text-[#6c757d] font-medium">
+                <div className="py-20 text-center text-[#6c757d] font-bold text-sm">
                     No records found in {collectionName}.
                 </div>
             )}
