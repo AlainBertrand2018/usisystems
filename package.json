@@ -11,7 +11,7 @@
     "deploy:rules": "npx -p firebase-tools firebase deploy --only firestore:rules"
   },
   "dependencies": {
-    "@react-pdf/renderer": "^4.3.2",
+    "@react-pdf/renderer": "^4.0.0",
     "firebase": "^10.8.0",
     "framer-motion": "^11.0.8",
     "lucide-react": "^0.344.0",
