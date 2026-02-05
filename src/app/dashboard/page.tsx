@@ -89,33 +89,34 @@ export default function DashboardPage() {
     ];
 
     return (
-        <div className="space-y-10 pb-10">
+        <div className="space-y-6 lg:space-y-10 pb-10">
             {/* Header with Quick Actions */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-[#1a1a1a]">Business Overview</h1>
-                    <p className="text-[#6c757d] mt-1">Real-time performance across your workspace</p>
+                    <h1 className="text-2xl lg:text-3xl font-black text-[#1a1a1a]">Overview</h1>
+                    <p className="text-[#6c757d] text-sm font-medium">Real-time performance</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 md:pb-0">
                     {quickActions.map((action) => (
-                        <Link key={action.name} href={action.href} className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105 active:scale-95 shadow-sm ${action.color}`}>
+                        <Link key={action.name} href={action.href} className={`flex-shrink-0 flex items-center justify-center gap-2 px-5 py-3 lg:px-6 lg:py-3 rounded-[20px] font-black text-sm lg:font-semibold transition-all active:scale-95 shadow-sm ${action.color}`}>
                             <action.icon size={18} />
-                            <span>{action.name}</span>
+                            <span className="lg:block">{action.name}</span>
                         </Link>
                     ))}
                 </div>
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
                 {stats.map((stat) => (
-                    <div key={stat.label} className="bg-white p-7 rounded-[32px] shadow-sm border border-gray-100/50 flex justify-between items-center transition-all hover:shadow-xl hover:shadow-gray-200/50 hover:-translate-y-1 group">
-                        <div>
-                            <p className="text-[#6c757d] text-sm font-semibold uppercase tracking-wider mb-1">{stat.label}</p>
-                            <h3 className="text-3xl font-black text-[#1a1a1a]">{stat.value}</h3>
+                    <div key={stat.label} className="bg-white p-6 lg:p-7 rounded-[32px] shadow-sm border border-gray-100/50 flex justify-between items-center transition-all active:bg-gray-50 lg:hover:shadow-xl lg:hover:shadow-gray-200/50 lg:hover:-translate-y-1 group">
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[#6c757d] text-[10px] lg:text-sm font-black uppercase tracking-[0.15em] mb-1 truncate">{stat.label}</p>
+                            <h3 className="text-xl lg:text-3xl font-black text-[#1a1a1a] truncate">{stat.value}</h3>
                         </div>
-                        <div className={`w-16 h-16 ${stat.bg} ${stat.color} rounded-[22px] flex items-center justify-center transition-transform group-hover:rotate-6`}>
-                            <stat.icon size={32} />
+                        <div className={`w-12 h-12 lg:w-16 lg:h-16 flex-shrink-0 ${stat.bg} ${stat.color} rounded-[18px] lg:rounded-[22px] flex items-center justify-center transition-transform lg:group-hover:rotate-6 ml-4`}>
+                            <stat.icon size={24} className="lg:hidden" />
+                            <stat.icon size={32} className="hidden lg:block" />
                         </div>
                     </div>
                 ))}

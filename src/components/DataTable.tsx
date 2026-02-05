@@ -86,7 +86,7 @@ export default function DataTable({ collectionName, columns, onEdit, onClone, on
                                     </td>
                                 ))}
                                 <td className="py-5 px-4">
-                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                                         {onEdit && (
                                             <button onClick={() => onEdit(item)} className="p-2 bg-gray-100 rounded-xl text-[#6c757d] hover:text-[#107d92] hover:bg-[#107d92]/10 transition-all">
                                                 <Edit2 size={16} />
