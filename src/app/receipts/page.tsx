@@ -11,11 +11,14 @@ export default function ReceiptsPage() {
     ];
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center px-2">
-                <h2 className="text-xl font-bold text-[#1a1a1a]">Payment Receipts</h2>
+        <div className="space-y-8 pb-10">
+            <div className="flex justify-between items-center px-4">
+                <div>
+                    <h1 className="text-3xl font-black text-[#1a1a1a]">Payment Receipts</h1>
+                    <p className="text-[#6c757d] text-sm mt-1">Track and download payment confirmations</p>
+                </div>
             </div>
-            <DataTable collectionName="receipts" columns={columns} />
+            <DataTable collectionName="receipts" columns={columns} pdfType="RECEIPT" />
         </div>
     );
 }

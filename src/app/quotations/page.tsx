@@ -64,6 +64,7 @@ export default function QuotationsPage() {
                 collectionName="quotations"
                 columns={columns}
                 onClone={handleClone}
+                pdfType="QUOTATION"
                 onDownload={(item) => alert(`Generating PDF for ${item.quoteNumber}...`)}
             />
 

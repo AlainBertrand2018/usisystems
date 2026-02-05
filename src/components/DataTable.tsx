@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { Edit2, FileDown, AlertCircle, Copy } from 'lucide-react';
+import PDFDownloadButton from './pdf/PDFDownloadButton';
 
 interface DataTableProps {
     collectionName: string;
@@ -11,9 +12,10 @@ interface DataTableProps {
     onEdit?: (item: any) => void;
     onClone?: (item: any) => void;
     onDownload?: (item: any) => void;
+    pdfType?: 'QUOTATION' | 'INVOICE' | 'RECEIPT' | 'STATEMENT';
 }
 
-export default function DataTable({ collectionName, columns, onEdit, onClone, onDownload }: DataTableProps) {
+export default function DataTable({ collectionName, columns, onEdit, onClone, onDownload, pdfType }: DataTableProps) {
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -95,7 +97,9 @@ export default function DataTable({ collectionName, columns, onEdit, onClone, on
                                                 <Copy size={16} />
                                             </button>
                                         )}
-                                        {onDownload && (
+                                        {pdfType ? (
+                                            <PDFDownloadButton type={pdfType} data={item} />
+                                        ) : onDownload && (
                                             <button onClick={() => onDownload(item)} className="p-2 bg-gray-100 rounded-xl text-[#6c757d] hover:text-[#107d92] hover:bg-[#107d92]/10 transition-all">
                                                 <FileDown size={16} />
                                             </button>
