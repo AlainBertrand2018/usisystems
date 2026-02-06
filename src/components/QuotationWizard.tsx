@@ -132,12 +132,12 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
     };
 
     const filteredProducts = products.filter(p =>
-        p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+        (p.name && p.name.toLowerCase().includes(productSearch.toLowerCase())) ||
         (p.category && p.category.toLowerCase().includes(productSearch.toLowerCase()))
     );
 
     const filteredClients = clients.filter(c =>
-        c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+        (c.name && c.name.toLowerCase().includes(clientSearch.toLowerCase())) ||
         (c.company && c.company.toLowerCase().includes(clientSearch.toLowerCase()))
     );
 
