@@ -19,18 +19,19 @@ export default function ClientLayoutWrapper({
     const { user, loading } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const isSplashPage = pathname === '/';
+    const isPublicPage = pathname?.startsWith('/p/');
 
     const handleOpenMenu = useCallback(() => setIsMobileMenuOpen(true), []);
     const handleCloseMenu = useCallback(() => setIsMobileMenuOpen(false), []);
 
     useEffect(() => {
-        if (!loading && !user && !isSplashPage) {
+        if (!loading && !user && !isSplashPage && !isPublicPage) {
             router.replace('/');
         }
-    }, [pathname, router, isSplashPage, user, loading]);
+    }, [pathname, router, isSplashPage, isPublicPage, user, loading]);
 
     // Don't render until we know the auth status on protected routes
-    if ((loading || !user) && !isSplashPage) {
+    if ((loading || !user) && !isSplashPage && !isPublicPage) {
         return (
             <div className="h-screen flex items-center justify-center bg-white">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#107d92]"></div>
@@ -38,7 +39,7 @@ export default function ClientLayoutWrapper({
         );
     }
 
-    if (isSplashPage) {
+    if (isSplashPage || isPublicPage) {
         return <main className="min-h-screen bg-white">{children}</main>;
     }
 

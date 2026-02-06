@@ -40,8 +40,74 @@ export default function QuotationsPage() {
                 };
                 return (
                     <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${colors[val] || 'bg-amber-100 text-amber-700'}`}>
-                        {val || 'To send'}
+                        {val === 'sent' || val === 'Sent' ? 'Sent' : (val || 'To send')}
                     </span>
+                );
+            }
+        },
+        {
+            key: 'actions',
+            label: 'Quick Status',
+            format: (val: any, item: any) => {
+                const handleUpdateStatus = async (newStatus: string) => {
+                    if (!item.id) return;
+                    try {
+                        const docRef = doc(db, 'quotations', item.id);
+                        await updateDoc(docRef, { status: newStatus });
+
+                        if (newStatus === 'Won') {
+                            const docNo = item.quoteNumber || item.id;
+                            await addDoc(collection(db, 'invoices'), {
+                                invoiceNumber: docNo.replace('Q-', 'INV-'),
+                                clientId: item.clientId,
+                                clientName: item.clientName,
+                                clientCompany: item.clientCompany || 'Business Default',
+                                clientAddress: item.clientAddress || '',
+                                clientBRN: item.clientBRN || '',
+                                clientVAT: item.clientVAT || '',
+                                clientPhone: item.clientPhone || '',
+                                clientEmail: item.clientEmail || '',
+                                total: item.total,
+                                status: 'pending',
+                                date: serverTimestamp(),
+                                quoteRef: item.id,
+                                productName: item.productName,
+                                qty: item.qty,
+                                price: item.price,
+                                notes: item.notes,
+                                businessId: item.businessId
+                            });
+                            alert(`Quote WON! Invoice generated.`);
+                        }
+                    } catch (error) {
+                        console.error("Manual status update error:", error);
+                        alert("Failed to update status.");
+                    }
+                };
+
+                return (
+                    <div className="flex bg-gray-50 p-1 rounded-xl gap-1 w-fit">
+                        {[
+                            { s: 'Sent', color: 'text-blue-600', bg: 'bg-blue-50' },
+                            { s: 'Won', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                            { s: 'Rejected', color: 'text-rose-600', bg: 'bg-rose-50' }
+                        ].map((btn) => (
+                            <button
+                                key={btn.s}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUpdateStatus(btn.s);
+                                }}
+                                disabled={item.status === btn.s}
+                                className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${item.status === btn.s
+                                        ? `${btn.bg} ${btn.color} ring-1 ring-inset ring-current`
+                                        : 'text-gray-400 hover:bg-white'
+                                    }`}
+                            >
+                                {btn.s}
+                            </button>
+                        ))}
+                    </div>
                 );
             }
         },
@@ -60,7 +126,6 @@ export default function QuotationsPage() {
     const closeWizard = (newDoc?: any) => {
         setIsWizardOpen(false);
         setWizardData(null);
-        // If a document was just created, open the viewer immediately
         if (newDoc) {
             setViewItem(newDoc);
         }

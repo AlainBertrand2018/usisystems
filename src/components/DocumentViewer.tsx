@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, collection, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
-import { X, Printer, FileDown, Mail, CheckCircle2, AlertCircle, Trash2, Send } from 'lucide-react';
+import { X, Printer, FileDown, Mail, CheckCircle2, AlertCircle, Trash2, Send, Loader2 } from 'lucide-react';
 import PDFDownloadButton from './pdf/PDFDownloadButton';
 
 interface DocumentViewerProps {
@@ -11,11 +11,20 @@ interface DocumentViewerProps {
     onClose: () => void;
     type: 'QUOTATION' | 'INVOICE' | 'RECEIPT' | 'STATEMENT';
     data: any;
+    isAdmin?: boolean;
 }
 
-export default function DocumentViewer({ isOpen, onClose, type, data }: DocumentViewerProps) {
+const collectionMap: any = {
+    'QUOTATION': 'quotations',
+    'INVOICE': 'invoices',
+    'RECEIPT': 'receipts',
+    'STATEMENT': 'statements'
+};
+
+export default function DocumentViewer({ isOpen, onClose, type, data, isAdmin = true }: DocumentViewerProps) {
     const [businessDetails, setBusinessDetails] = useState<any>(null);
     const [isUpdating, setIsUpdating] = useState(false);
+    const [isSending, setIsSending] = useState(false);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -29,21 +38,21 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
 
     if (!isOpen || !data) return null;
 
-    const handleUpdateStatus = async (newStatus: string) => {
+    const bPhone = getVal(businessDetails, ['phone', 'Phone', 'businessPhone', 'tel', 'Tel']);
+    const docNo = data.quoteNumber || data.invoiceNumber || data.receiptNumber || data.id;
+    // Hardcode production URL for reliable sharing
+    const publicLink = `https://unisystems.vercel.app/p/${type.toLowerCase()}/${data.id}`;
+
+    const handleUpdateStatus = async (newStatus: string, silent = false) => {
         if (!data.id) return;
         setIsUpdating(true);
         try {
-            const collectionMap: any = {
-                'QUOTATION': 'quotations',
-                'INVOICE': 'invoices',
-                'RECEIPT': 'receipts'
-            };
             const docRef = doc(db, collectionMap[type], data.id);
             await updateDoc(docRef, { status: newStatus });
 
             if (type === 'QUOTATION' && newStatus === 'Won') {
-                const invRef = await addDoc(collection(db, 'invoices'), {
-                    invoiceNumber: data.quoteNumber.replace('Q-', 'INV-'),
+                const invoiceData: any = {
+                    invoiceNumber: docNo.replace('Q-', 'INV-'),
                     clientId: data.clientId,
                     clientName: data.clientName,
                     clientCompany: data.clientCompany || 'Business Default',
@@ -60,73 +69,159 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
                     qty: data.qty,
                     price: data.price,
                     notes: data.notes
-                });
-                alert(`Quotation WON! Invoice generated.`);
+                };
+
+                // Safety check: only add businessId if it exists in data
+                if (data.businessId) {
+                    invoiceData.businessId = data.businessId;
+                }
+
+                await addDoc(collection(db, 'invoices'), invoiceData);
+                if (!silent) alert(`Quotation WON! Invoice generated.`);
             } else {
-                alert(`Status updated to ${newStatus}`);
+                if (!silent) alert(`Status updated to ${newStatus}`);
             }
         } catch (error) {
             console.error("Update error:", error);
-            alert("Failed to update status.");
+            if (!silent) alert("Failed to update status.");
         } finally {
             setIsUpdating(false);
         }
     };
 
-    const getVal = (obj: any, keys: string[]) => {
+    const handleSendEmail = async () => {
+        setIsSending(true);
+        try {
+            const response = await fetch('/api/send-document', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    documentId: data.id,
+                    collectionName: collectionMap[type],
+                    type: type,
+                    clientEmail: data.clientEmail || data.email
+                })
+            });
+            if (response.ok) {
+                alert("Email sent successfully!");
+                handleUpdateStatus('Sent', true);
+            } else {
+                alert("Failed to send email.");
+            }
+        } catch (err) {
+            alert("Error sending email.");
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    const handleWhatsAppAction = (mode: 'admin_to_client' | 'accepted' | 'rejected') => {
+        let msg = "";
+        let phone = "";
+
+        if (mode === 'admin_to_client') {
+            phone = data.clientPhone;
+            msg = `Hello ${data.clientName}, please find your ${type} ${docNo}. You can view and respond here: ${publicLink}`;
+        } else {
+            phone = bPhone;
+            const statusLabel = mode === 'accepted' ? 'ACCEPTED' : 'REJECTED';
+            msg = `Hello, I have ${statusLabel} the ${type} ${docNo}. View here: ${publicLink}`;
+            if (mode === 'accepted') handleUpdateStatus('Won', true);
+            if (mode === 'rejected') handleUpdateStatus('Rejected', true);
+        }
+
+        const encodedMsg = encodeURIComponent(msg);
+        window.open(`https://wa.me/${phone}?text=${encodedMsg}`, '_blank');
+    };
+
+    function getVal(obj: any, keys: string[]) {
         if (!obj) return '';
         for (const key of keys) {
             if (obj[key]) return obj[key];
         }
         return '';
-    };
+    }
 
     const bName = getVal(businessDetails, ['name', 'Name', 'businessName']);
     const bAddress = getVal(businessDetails, ['address', 'Address', 'businessAddress']);
     const bBRN = getVal(businessDetails, ['brn', 'BRN', 'businessBRN']);
     const bVAT = getVal(businessDetails, ['vat', 'VAT', 'businessVAT']);
-    const bPhone = getVal(businessDetails, ['phone', 'Phone', 'businessPhone', 'tel', 'Tel']);
+    const bPhoneDisplay = getVal(businessDetails, ['phone', 'Phone', 'businessPhone', 'tel', 'Tel']);
     const bEmail = getVal(businessDetails, ['email', 'Email', 'businessEmail']);
     const bWeb = getVal(businessDetails, ['website', 'Website', 'websiteURL', 'URL', 'url', 'Web', 'web']);
+
+    const handleAutoSent = async () => {
+        if (isAdmin && (!data.status || data.status === 'To send')) {
+            await handleUpdateStatus('Sent', true);
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 lg:p-10">
             <div className="bg-white flex flex-col font-sans overflow-hidden w-full max-w-4xl h-[80vh] rounded-[32px] lg:rounded-[40px] shadow-2xl border border-gray-200">
                 {/* Action Bar */}
                 <div className="ios-blur sticky top-0 z-10 px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white/80">
-                    <button onClick={onClose} className="p-2 bg-gray-100 rounded-full text-gray-900 active:scale-90 transition-transform">
-                        <X size={20} />
-                    </button>
+                    {isAdmin ? (
+                        <button onClick={onClose} className="p-2 bg-gray-100 rounded-full text-gray-900 active:scale-90 transition-transform">
+                            <X size={20} />
+                        </button>
+                    ) : (
+                        <div className="w-10 h-10"></div>
+                    )}
 
                     <div className="flex items-center gap-3">
-                        {type === 'QUOTATION' && (
-                            <div className="flex bg-gray-50 p-1.5 rounded-2xl gap-1 mr-4">
-                                {[
-                                    { s: 'Sent', icon: Send, color: 'text-blue-600', bg: 'bg-blue-50' },
-                                    { s: 'Won', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                                    { s: 'Rejected', icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
-                                    { s: 'Lost', icon: Trash2, color: 'text-gray-600', bg: 'bg-gray-50' }
-                                ].map((btn) => (
-                                    <button
-                                        key={btn.s}
-                                        onClick={() => handleUpdateStatus(btn.s)}
-                                        disabled={isUpdating || data.status === btn.s}
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${data.status === btn.s
-                                            ? `${btn.bg} ${btn.color} ring-1 ring-inset ring-current`
-                                            : 'text-gray-400 hover:bg-white'
-                                            }`}
-                                    >
-                                        <btn.icon size={14} />
-                                        <span className="hidden sm:inline">{btn.s}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                        {/* Status Badge */}
+                        <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mr-4 ${data.status === 'Won' ? 'bg-emerald-100 text-emerald-700' :
+                                (data.status === 'Sent' || data.status === 'sent') ? 'bg-blue-100 text-blue-700' :
+                                    data.status === 'Rejected' ? 'bg-rose-100 text-rose-700' :
+                                        'bg-amber-100 text-amber-700'
+                            }`}>
+                            {data.status === 'sent' || data.status === 'Sent' ? 'Sent' : (data.status || 'To send')}
+                        </div>
 
-                        <button className="p-2 bg-gray-100 rounded-xl text-gray-400 hover:text-[#107d92] transition-colors">
-                            <Mail size={20} />
-                        </button>
-                        <PDFDownloadButton type={type} data={data} showLabel={true} />
+                        {isAdmin ? (
+                            <>
+                                <button
+                                    onClick={async () => {
+                                        await handleSendEmail();
+                                        handleAutoSent();
+                                    }}
+                                    disabled={isSending}
+                                    className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-blue-100 transition-all flex items-center gap-2"
+                                >
+                                    {isSending ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+                                    Send Email
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        handleWhatsAppAction('admin_to_client');
+                                        handleAutoSent();
+                                    }}
+                                    className="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-emerald-100 transition-all flex items-center gap-2"
+                                >
+                                    <Send size={14} />
+                                    WhatsApp Client
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={() => handleWhatsAppAction('accepted')}
+                                    className="px-6 py-2 bg-emerald-500 text-white rounded-xl font-black text-xs uppercase tracking-wider hover:bg-emerald-600 transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+                                >
+                                    <CheckCircle2 size={16} />
+                                    Accept Document
+                                </button>
+                                <button
+                                    onClick={() => handleWhatsAppAction('rejected')}
+                                    className="px-6 py-2 bg-rose-500 text-white rounded-xl font-black text-xs uppercase tracking-wider hover:bg-rose-600 transition-all flex items-center gap-2 shadow-lg shadow-rose-500/20"
+                                >
+                                    <X size={16} />
+                                    Reject
+                                </button>
+                            </>
+                        )}
+                        <PDFDownloadButton type={type} data={data} showLabel={false} />
                     </div>
                 </div>
 
