@@ -4,14 +4,16 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle, Calendar, MapPin, Search, Loader2, User } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, serverTimestamp } from 'firebase/firestore';
 
 interface AppointmentModalProps {
     isOpen: boolean;
     onClose: () => void;
+    preselectedClient?: any;
+    onSuccess?: (appointment: any) => void;
 }
 
-export default function AppointmentModal({ isOpen, onClose }: AppointmentModalProps) {
+export default function AppointmentModal({ isOpen, onClose, preselectedClient, onSuccess }: AppointmentModalProps) {
     const [loading, setLoading] = useState(false);
     const [clients, setClients] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -27,14 +29,23 @@ export default function AppointmentModal({ isOpen, onClose }: AppointmentModalPr
 
     useEffect(() => {
         if (isOpen) {
-            const fetchClients = async () => {
-                const q = query(collection(db, 'clients'), orderBy('name', 'asc'));
-                const snap = await getDocs(q);
-                setClients(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-            };
-            fetchClients();
+            if (preselectedClient) {
+                setFormData(prev => ({
+                    ...prev,
+                    clientId: preselectedClient.id,
+                    clientName: preselectedClient.name
+                }));
+                setSearchTerm(preselectedClient.name);
+            } else {
+                const fetchClients = async () => {
+                    const q = query(collection(db, 'clients'), orderBy('name', 'asc'));
+                    const snap = await getDocs(q);
+                    setClients(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                };
+                fetchClients();
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, preselectedClient]);
 
     const [showDropdown, setShowDropdown] = useState(false);
 
@@ -55,15 +66,37 @@ export default function AppointmentModal({ isOpen, onClose }: AppointmentModalPr
 
         try {
             const schedDate = new Date(`${formData.date}T${formData.time}`);
-            await addDoc(collection(db, 'appointments'), {
+            const apptData = {
                 title: formData.title,
                 clientId: formData.clientId,
                 clientName: formData.clientName,
                 date: schedDate,
                 location: formData.location,
                 description: formData.description,
-            });
-            alert('Appointment scheduled!');
+                createdAt: serverTimestamp()
+            };
+            const docRef = await addDoc(collection(db, 'appointments'), apptData);
+
+            // Send Email on the fly
+            const targetClient = preselectedClient || clients.find(c => c.id === formData.clientId);
+            if (targetClient?.email) {
+                try {
+                    await fetch('/api/send-document', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            documentId: docRef.id,
+                            collectionName: 'appointments',
+                            type: 'APPOINTMENT',
+                            clientEmail: targetClient.email
+                        })
+                    });
+                } catch (err) {
+                    console.error("Failed to send appointment email:", err);
+                }
+            }
+
+            if (onSuccess) onSuccess({ id: docRef.id, ...apptData });
+            alert('Appointment scheduled and confirmation sent!');
             onClose();
             setFormData({ title: '', clientId: '', clientName: '', date: '', time: '', location: '', description: '' });
             setSearchTerm('');

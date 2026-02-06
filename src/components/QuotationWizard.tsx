@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
-import { X, ArrowRight, ArrowLeft, Check, Eye, Loader2, Search, ChevronDown } from 'lucide-react';
+import { X, ArrowRight, ArrowLeft, Check, Eye, Loader2, Search, ChevronDown, Plus, Trash2, Calendar, UserPlus, Send, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ClientModal from './ClientModal';
+import AppointmentModal from './AppointmentModal';
 
 interface QuotationWizardProps {
     isOpen: boolean;
@@ -17,22 +19,23 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
     const [products, setProducts] = useState<any[]>([]);
     const [clients, setClients] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [savedDoc, setSavedDoc] = useState<any>(null);
 
-    const [selectedProduct, setSelectedProduct] = useState<any>(null);
+    // Form State
     const [selectedClient, setSelectedClient] = useState<any>(null);
-    const [qty, setQty] = useState(1);
-    const [unitPrice, setUnitPrice] = useState(0);
-    const [discount, setDiscount] = useState(0);
+    const [items, setItems] = useState<any[]>([]); // Array of { productId, name, qty, price }
+    const [globalDiscount, setGlobalDiscount] = useState<number>(0);
     const [notes, setNotes] = useState('');
 
-    // Search states
-    const [productSearch, setProductSearch] = useState('');
-    const [clientSearch, setClientSearch] = useState('');
-    const [showProductDropdown, setShowProductDropdown] = useState(false);
-    const [showClientDropdown, setShowClientDropdown] = useState(false);
+    // Auxiliary Modals
+    const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+    const [isApptModalOpen, setIsApptModalOpen] = useState(false);
 
-    const productInputRef = useRef<HTMLInputElement>(null);
-    const clientInputRef = useRef<HTMLInputElement>(null);
+    // Search Interface States
+    const [clientSearch, setClientSearch] = useState('');
+    const [productSearch, setProductSearch] = useState('');
+    const [showClientDropdown, setShowClientDropdown] = useState(false);
+    const [showProductDropdown, setShowProductDropdown] = useState(false);
 
     useEffect(() => {
         const unsubProducts = onSnapshot(collection(db, 'business_products'), (s) => {
@@ -41,7 +44,6 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
         const unsubClients = onSnapshot(collection(db, 'clients'), (s) => {
             setClients(s.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         });
-
         return () => {
             unsubProducts();
             unsubClients();
@@ -49,35 +51,46 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
     }, []);
 
     useEffect(() => {
-        if (initialData) {
-            setStep(3);
-            setSelectedProduct(products.find(p => p.id === initialData.productId));
-            setSelectedClient(clients.find(c => c.id === initialData.clientId));
-            setQty(initialData.qty || 1);
-            setUnitPrice(initialData.price || 0);
-            setDiscount(initialData.discount || 0);
-            setNotes(initialData.notes || '');
-        } else {
-            setStep(1);
-            setSelectedProduct(null);
-            setSelectedClient(null);
-            setQty(1);
-            setUnitPrice(0);
-            setDiscount(0);
-            setNotes('');
-            setProductSearch('');
-            setClientSearch('');
+        if (isOpen) {
+            if (initialData) {
+                setStep(4);
+                setSelectedClient(clients.find(c => c.id === initialData.clientId));
+                if (initialData.items) {
+                    setItems(initialData.items);
+                } else {
+                    setItems([{
+                        productId: initialData.productId,
+                        name: initialData.productName,
+                        qty: initialData.qty || 1,
+                        price: initialData.price || 0
+                    }]);
+                }
+                setGlobalDiscount(initialData.discount || 0);
+                setNotes(initialData.notes || '');
+            } else {
+                setStep(1);
+                setSelectedClient(null);
+                setItems([]);
+                setGlobalDiscount(0);
+                setNotes('');
+                setClientSearch('');
+                setProductSearch('');
+                setSavedDoc(null);
+            }
         }
-    }, [initialData, products, clients]);
+    }, [isOpen, initialData, clients]);
 
-    const getInitials = (clientName: string, company?: string) => {
-        const cN = clientName ? clientName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'XX';
-        const cB = company ? company.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'XX';
-        return { cN, cB };
+    const calculateTotals = () => {
+        const subtotal = items.reduce((acc, item) => acc + (item.qty * item.price), 0);
+        const amountBeforeVAT = subtotal - globalDiscount;
+        const vatAmount = amountBeforeVAT * 0.15;
+        const grandTotal = amountBeforeVAT + vatAmount;
+        return { subtotal, amountBeforeVAT, vatAmount, grandTotal };
     };
 
     const generateQuoteID = (clientName: string, clientBusiness?: string) => {
-        const { cN, cB } = getInitials(clientName, clientBusiness);
+        const cN = clientName ? clientName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'XX';
+        const cB = clientBusiness ? clientBusiness.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'XX';
         const now = new Date();
         const year = now.getFullYear().toString().substring(2);
         const month = (now.getMonth() + 1).toString().padStart(2, '0');
@@ -86,62 +99,94 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
         return `Q-${cN}${cB}-${day}${month}${year}-${timeSuffix}`;
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleFinalSave = async () => {
         setLoading(true);
-
-        const subtotal = qty * unitPrice;
-        const amountBeforeVAT = subtotal - discount;
-        const vatAmount = amountBeforeVAT * 0.15;
-        const grandTotal = amountBeforeVAT + vatAmount;
+        const { subtotal, amountBeforeVAT, vatAmount, grandTotal } = calculateTotals();
         const quoteId = generateQuoteID(selectedClient.name, selectedClient.company);
 
         const newDoc = {
             quoteNumber: quoteId,
             clientId: selectedClient.id,
             clientName: selectedClient.name,
-            clientCompany: selectedClient.company || 'Business Default',
+            clientCompany: selectedClient.company || 'Private Client',
             clientAddress: selectedClient.address || '',
-            clientBRN: selectedClient.brn || '',
-            clientVAT: selectedClient.vat || '',
             clientPhone: selectedClient.phone || '',
             clientEmail: selectedClient.email || '',
-            productId: selectedProduct.id,
-            productName: selectedProduct.name,
-            qty,
-            price: unitPrice,
+            clientBRN: selectedClient.brn || '',
+            clientVAT: selectedClient.vat || '',
+            items,
+            productName: items[0]?.name || 'Multiple Products',
+            qty: items.reduce((acc, i) => acc + i.qty, 0),
+            price: items[0]?.price || 0,
             subtotal,
-            discount,
+            discount: globalDiscount,
             amountBeforeVAT,
             vatAmount,
             total: grandTotal,
             notes,
-            status: 'To Send',
+            status: 'To send',
             date: serverTimestamp(),
         };
 
         try {
             const docRef = await addDoc(collection(db, 'quotations'), newDoc);
-            onClose({ id: docRef.id, ...newDoc, date: { seconds: Date.now() / 1000 } });
+            const saved = { id: docRef.id, ...newDoc, date: { seconds: Date.now() / 1000 } };
+            setSavedDoc(saved);
+            setStep(5);
         } catch (error) {
-            console.error("Error creating quotation:", error);
-            alert("Error creating quotation.");
+            console.error("Save error:", error);
+            alert("Error saving quotation.");
         } finally {
             setLoading(false);
         }
     };
 
-    const filteredProducts = products.filter(p =>
-        (p.name && p.name.toLowerCase().includes(productSearch.toLowerCase())) ||
-        (p.category && p.category.toLowerCase().includes(productSearch.toLowerCase()))
-    );
+    const sendEmailNow = async () => {
+        if (!savedDoc) return;
+        setLoading(true);
+        try {
+            const res = await fetch('/api/send-document', {
+                method: 'POST',
+                body: JSON.stringify({
+                    documentId: savedDoc.id,
+                    collectionName: 'quotations',
+                    type: 'QUOTATION'
+                })
+            });
+            if (res.ok) alert('Quotation emailed to client!');
+            else alert('Failed to send email.');
+        } catch (err) {
+            alert('Failed to send email.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const filteredClients = clients.filter(c =>
-        (c.name && c.name.toLowerCase().includes(clientSearch.toLowerCase())) ||
-        (c.company && c.company.toLowerCase().includes(clientSearch.toLowerCase()))
+        (c.name?.toLowerCase().includes(clientSearch.toLowerCase())) ||
+        (c.company?.toLowerCase().includes(clientSearch.toLowerCase()))
     );
 
+    const filteredProducts = products.filter(p =>
+        (p.name?.toLowerCase().includes(productSearch.toLowerCase())) ||
+        (p.category?.toLowerCase().includes(productSearch.toLowerCase()))
+    );
+
+    const addItem = (product: any, goToNext: boolean = false) => {
+        setItems([...items, {
+            productId: product.id,
+            name: product.name,
+            qty: 1,
+            price: product.price
+        }]);
+        setProductSearch('');
+        setShowProductDropdown(false);
+        if (goToNext) setStep(3);
+    };
+
     if (!isOpen) return null;
+
+    const { subtotal, amountBeforeVAT, vatAmount, grandTotal } = calculateTotals();
 
     return (
         <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center bg-black/40 backdrop-blur-sm p-0 lg:p-4">
@@ -150,295 +195,305 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="bg-white rounded-t-[40px] lg:rounded-[32px] shadow-2xl w-full max-w-2xl h-[80vh] overflow-hidden flex flex-col"
+                className="bg-white rounded-t-[40px] lg:rounded-[32px] shadow-2xl w-full max-w-2xl h-[90vh] overflow-hidden flex flex-col"
             >
                 <div className="p-6 lg:p-10 flex flex-col h-full">
-                    <div className="flex justify-between items-center mb-6 lg:mb-10">
+                    {/* Header */}
+                    <div className="flex justify-between items-center mb-6">
                         <div>
                             <h2 className="text-xl lg:text-2xl font-black text-[#1a1a1a]">
-                                {initialData ? 'Edit Quotation' : 'New Quotation'}
+                                {step === 5 ? 'Success!' : initialData ? 'Modify Quotation' : 'Refined Proposal Wizard'}
                             </h2>
-                            <p className="text-[#6c757d] text-xs lg:text-sm mt-1 font-medium italic opacity-70">Guided Proposal Engine</p>
+                            <p className="text-[#6c757d] text-xs lg:text-sm mt-1 font-bold opacity-70 italic">
+                                {step === 1 && 'Step 1: Identify your client'}
+                                {step === 2 && 'Step 2: Choose primary product'}
+                                {step === 3 && 'Step 3: Define proposal & bundle'}
+                                {step === 4 && 'Step 4: Final quality check'}
+                                {step === 5 && 'Quotation created & logged'}
+                            </p>
                         </div>
-                        <button onClick={() => onClose()} className="w-10 h-10 bg-gray-50 flex items-center justify-center rounded-full transition-colors text-gray-400 hover:text-gray-900 border border-gray-100">
+                        <button onClick={() => onClose(savedDoc)} className="w-10 h-10 bg-gray-50 flex items-center justify-center rounded-full transition-colors text-gray-400 hover:text-gray-900 border border-gray-100">
                             <X size={20} />
                         </button>
                     </div>
 
-                    <div className="flex items-center justify-between mb-8 lg:mb-12 relative px-4 lg:px-10">
-                        <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-50 -translate-y-1/2 z-0"></div>
-                        <div className={`absolute top-1/2 left-0 h-1 bg-[#107d92] -translate-y-1/2 z-0 transition-all duration-500`} style={{ width: `${(step - 1) * 50}%` }}></div>
+                    {/* Progress Bar */}
+                    {step < 5 && (
+                        <div className="flex items-center justify-between mb-8 relative px-4 lg:px-10">
+                            <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-50 -translate-y-1/2 z-0"></div>
+                            <div className={`absolute top-1/2 left-0 h-1 bg-[#107d92] -translate-y-1/2 z-0 transition-all duration-500`} style={{ width: `${(step - 1) * 33.3}%` }}></div>
 
-                        {[1, 2, 3].map((s) => (
-                            <div key={s} className="relative z-10 flex flex-col items-center">
-                                <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-full flex items-center justify-center font-bold text-sm lg:text-base transition-all duration-300 ${step >= s ? 'bg-[#107d92] text-white' : 'bg-white border-4 border-gray-50 text-gray-300'}`}>
-                                    {step > s ? <Check size={16} /> : s}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto no-scrollbar pb-10">
-                        {step === 1 && (
-                            <div className="space-y-4 lg:space-y-6">
-                                <div className="relative">
-                                    <label className="block text-[10px] font-black text-[#6c757d] uppercase tracking-[0.2em] mb-4">Select Product / Service</label>
-
-                                    {/* Searchable Dropdown Trigger */}
-                                    <div className="relative group">
-                                        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#107d92] transition-colors">
-                                            <Search size={18} />
-                                        </div>
-                                        <input
-                                            ref={productInputRef}
-                                            type="text"
-                                            placeholder="Search products (e.g. Design, Audit...)"
-                                            value={productSearch}
-                                            onChange={(e) => {
-                                                setProductSearch(e.target.value);
-                                                setShowProductDropdown(true);
-                                            }}
-                                            onFocus={() => setShowProductDropdown(true)}
-                                            className="w-full bg-gray-50 border-2 border-transparent focus:border-[#107d92] focus:bg-white rounded-2xl pl-14 pr-12 py-5 outline-none transition-all font-bold text-[#1a1a1a] shadow-sm hover:shadow-md"
-                                        />
-                                        <div className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300">
-                                            <ChevronDown size={20} />
-                                        </div>
-
-                                        {/* Dropdown Content */}
-                                        <AnimatePresence>
-                                            {showProductDropdown && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: 10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    exit={{ opacity: 0, y: 10 }}
-                                                    className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 max-h-[300px] overflow-y-auto no-scrollbar py-2"
-                                                >
-                                                    {filteredProducts.length > 0 ? (
-                                                        filteredProducts.map((p) => (
-                                                            <button
-                                                                key={p.id}
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setSelectedProduct(p);
-                                                                    setUnitPrice(p.price);
-                                                                    setProductSearch(p.name);
-                                                                    setShowProductDropdown(false);
-                                                                    setStep(2);
-                                                                }}
-                                                                className="w-full px-6 py-4 text-left hover:bg-gray-50 flex justify-between items-center transition-colors group/item"
-                                                            >
-                                                                <div>
-                                                                    <p className="font-bold text-[#1a1a1a] group-hover/item:text-[#107d92]">{p.name}</p>
-                                                                    <p className="text-xs text-[#6c757d] mt-1">{p.category || 'Service'}</p>
-                                                                </div>
-                                                                <span className="font-black text-[#107d92] bg-[#107d92]/5 px-3 py-1 rounded-lg text-xs">MUR {p.price?.toLocaleString()}</span>
-                                                            </button>
-                                                        ))
-                                                    ) : (
-                                                        <div className="px-6 py-10 text-center">
-                                                            <p className="text-sm text-[#6c757d] italic">No products found matching "{productSearch}"</p>
-                                                        </div>
-                                                    )}
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
+                            {[1, 2, 3, 4].map((s) => (
+                                <div key={s} className="relative z-10 flex flex-col items-center">
+                                    <div className={`w-8 h-8 lg:w-9 lg:h-9 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 ${step >= s ? 'bg-[#107d92] text-white' : 'bg-white border-4 border-gray-50 text-gray-300'}`}>
+                                        {step > s ? <Check size={14} /> : s}
                                     </div>
-
-                                    {/* Overlay to close dropdown when clicking outside */}
-                                    {showProductDropdown && (
-                                        <div
-                                            className="fixed inset-0 z-40"
-                                            onClick={() => setShowProductDropdown(false)}
-                                        ></div>
-                                    )}
                                 </div>
-                            </div>
-                        )}
+                            ))}
+                        </div>
+                    )}
 
-                        {step === 2 && (
-                            <div className="space-y-4 lg:space-y-6">
-                                <div className="relative">
-                                    <label className="block text-[10px] font-black text-[#6c757d] uppercase tracking-[0.2em] mb-4">Select Client</label>
-
-                                    {/* Searchable Dropdown Trigger */}
-                                    <div className="relative group">
-                                        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#107d92] transition-colors">
-                                            <Search size={18} />
-                                        </div>
-                                        <input
-                                            ref={clientInputRef}
-                                            type="text"
-                                            placeholder="Search clients (e.g. name or company)"
-                                            value={clientSearch}
-                                            onChange={(e) => {
-                                                setClientSearch(e.target.value);
-                                                setShowClientDropdown(true);
-                                            }}
-                                            onFocus={() => setShowClientDropdown(true)}
-                                            className="w-full bg-gray-50 border-2 border-transparent focus:border-[#107d92] focus:bg-white rounded-2xl pl-14 pr-12 py-5 outline-none transition-all font-bold text-[#1a1a1a] shadow-sm hover:shadow-md"
-                                        />
-                                        <div className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300">
-                                            <ChevronDown size={20} />
-                                        </div>
-
-                                        {/* Dropdown Content */}
-                                        <AnimatePresence>
-                                            {showClientDropdown && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: 10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    exit={{ opacity: 0, y: 10 }}
-                                                    className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 max-h-[300px] overflow-y-auto no-scrollbar py-2"
-                                                >
-                                                    {filteredClients.length > 0 ? (
-                                                        filteredClients.map((c) => (
-                                                            <button
-                                                                key={c.id}
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setSelectedClient(c);
-                                                                    setClientSearch(c.name);
-                                                                    setShowClientDropdown(false);
-                                                                    setStep(3);
-                                                                }}
-                                                                className="w-full px-6 py-4 text-left hover:bg-gray-50 flex justify-between items-center transition-colors group/item"
-                                                            >
+                    <div className="flex-1 overflow-y-auto no-scrollbar pb-10">
+                        <AnimatePresence mode="wait">
+                            {step === 1 && (
+                                <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+                                    <div className="space-y-4">
+                                        <label className="block text-[10px] font-black text-[#6c757d] uppercase tracking-[0.2em] pl-1">Target Client Profile</label>
+                                        <div className="relative group">
+                                            <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#107d92] transition-colors">
+                                                <Search size={18} />
+                                            </div>
+                                            <input
+                                                type="text"
+                                                placeholder="Enter name or company..."
+                                                value={clientSearch}
+                                                onChange={(e) => { setClientSearch(e.target.value); setShowClientDropdown(true); }}
+                                                onFocus={() => setShowClientDropdown(true)}
+                                                className="w-full bg-gray-50 border-2 border-transparent focus:border-[#107d92] focus:bg-white rounded-2xl pl-14 pr-12 py-5 outline-none transition-all font-bold text-[#1a1a1a] shadow-sm hover:shadow-md"
+                                            />
+                                            <AnimatePresence>
+                                                {showClientDropdown && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 max-h-[250px] overflow-y-auto no-scrollbar py-2">
+                                                        {filteredClients.map((c) => (
+                                                            <button key={c.id} type="button" onClick={() => { setSelectedClient(c); setClientSearch(c.name); setShowClientDropdown(false); setStep(2); }} className="w-full px-6 py-4 text-left hover:bg-gray-50 flex justify-between items-center transition-colors">
                                                                 <div>
-                                                                    <p className="font-bold text-[#1a1a1a] group-hover/item:text-[#107d92]">{c.name}</p>
+                                                                    <p className="font-bold text-[#1a1a1a]">{c.name}</p>
                                                                     <p className="text-xs text-[#6c757d] mt-1">{c.company || 'Private Client'}</p>
                                                                 </div>
-                                                                <ArrowRight size={16} className="text-gray-300 group-hover/item:text-[#107d92] group-hover/item:translate-x-1 transition-all" />
+                                                                <ArrowRight size={16} className="text-gray-300" />
                                                             </button>
-                                                        ))
-                                                    ) : (
-                                                        <div className="px-6 py-10 text-center">
-                                                            <p className="text-sm text-[#6c757d] italic">No clients found matching "{clientSearch}"</p>
-                                                        </div>
+                                                        ))}
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                        <button type="button" onClick={() => setIsClientModalOpen(true)} className="w-full flex items-center justify-center gap-2 py-4 border-2 border-dashed border-gray-200 rounded-2xl text-[#6c757d] font-bold text-sm hover:border-[#107d92] hover:text-[#107d92] transition-all">
+                                            <UserPlus size={18} /> Create New Database Profile
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {step === 2 && (
+                                <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+                                    <div className="space-y-4">
+                                        <label className="block text-[10px] font-black text-[#6c757d] uppercase tracking-[0.2em] pl-1">Primary Product/Service</label>
+                                        <div className="relative group">
+                                            <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#107d92] transition-colors">
+                                                <Search size={18} />
+                                            </div>
+                                            <input
+                                                type="text"
+                                                placeholder="Search inventory..."
+                                                value={productSearch}
+                                                onChange={(e) => { setProductSearch(e.target.value); setShowProductDropdown(true); }}
+                                                onFocus={() => setShowProductDropdown(true)}
+                                                className="w-full bg-gray-50 border-2 border-transparent focus:border-[#107d92] focus:bg-white rounded-2xl pl-14 pr-12 py-5 outline-none transition-all font-bold text-[#1a1a1a] shadow-sm"
+                                            />
+                                            <AnimatePresence>
+                                                {showProductDropdown && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 max-h-[250px] overflow-y-auto no-scrollbar py-2">
+                                                        {filteredProducts.map((p) => (
+                                                            <button key={p.id} type="button" onClick={() => addItem(p, true)} className="w-full px-6 py-4 text-left hover:bg-gray-50 flex justify-between items-center transition-colors">
+                                                                <div>
+                                                                    <p className="font-bold text-[#1a1a1a]">{p.name}</p>
+                                                                    <p className="text-xs text-[#6c757d] mt-1">{p.category}</p>
+                                                                </div>
+                                                                <span className="font-black text-[#107d92] text-xs">MUR {p.price?.toLocaleString()}</span>
+                                                            </button>
+                                                        ))}
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                        <button type="button" onClick={() => setStep(1)} className="flex items-center gap-2 text-[#6c757d] font-bold text-sm px-1">
+                                            <ArrowLeft size={16} /> Back to Client
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {step === 3 && (
+                                <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
+                                    <div className="bg-gray-50 rounded-[32px] p-6 lg:p-8 space-y-6">
+                                        <div className="flex justify-between items-center px-1">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-[#6c757d]">Proposal Bundle</p>
+                                            <div className="relative">
+                                                <button type="button" onClick={() => setShowProductDropdown(!showProductDropdown)} className="text-[#107d92] text-xs font-black flex items-center gap-1 bg-[#107d92]/5 px-3 py-1.5 rounded-lg border border-[#107d92]/20">
+                                                    <Plus size={14} /> Add Product
+                                                </button>
+                                                <AnimatePresence>
+                                                    {showProductDropdown && (
+                                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute right-0 top-full mt-2 w-[280px] z-50 bg-white shadow-2xl rounded-2xl border border-gray-100 overflow-hidden">
+                                                            <div className="p-3 border-b border-gray-50 bg-gray-50/50">
+                                                                <input autoFocus type="text" placeholder="Search..." value={productSearch} onChange={(e) => setProductSearch(e.target.value)} className="w-full bg-white px-3 py-2 rounded-xl text-xs outline-none border border-gray-100 font-bold" />
+                                                            </div>
+                                                            <div className="max-h-[200px] overflow-y-auto no-scrollbar">
+                                                                {filteredProducts.map(p => (
+                                                                    <button key={p.id} type="button" onClick={() => addItem(p)} className="w-full px-4 py-3 text-left hover:bg-gray-50 text-xs font-bold border-b border-gray-50 last:border-0">{p.name}</button>
+                                                                ))}
+                                                            </div>
+                                                        </motion.div>
                                                     )}
-                                                </motion.div>
+                                                </AnimatePresence>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            {items.map((item, idx) => (
+                                                <div key={idx} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                                                    <div className="flex justify-between items-center">
+                                                        <p className="font-bold text-sm text-[#1a1a1a]">{item.name}</p>
+                                                        <button type="button" onClick={() => setItems(items.filter((_, i) => i !== idx))} className="text-gray-300 hover:text-rose-500 transition-colors">
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-1">
+                                                            <label className="text-[9px] font-black uppercase text-gray-400 pl-1">Quantity</label>
+                                                            <input type="number" value={item.qty} onChange={(e) => {
+                                                                const ni = [...items]; ni[idx].qty = parseInt(e.target.value) || 0; setItems(ni);
+                                                            }} className="w-full bg-gray-50 col-span-1 rounded-xl px-4 py-3 font-bold text-sm outline-none" />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[9px] font-black uppercase text-gray-400 pl-1">Unit Price</label>
+                                                            <input type="number" value={item.price} onChange={(e) => {
+                                                                const ni = [...items]; ni[idx].price = parseFloat(e.target.value) || 0; setItems(ni);
+                                                            }} className="w-full bg-gray-50 rounded-xl px-4 py-3 font-bold text-sm outline-none" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="pt-4 border-t border-gray-200/50 space-y-4">
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-black uppercase text-[#6c757d] pl-1 tracking-widest">Global Quotation Discount (MUR)</label>
+                                                <input
+                                                    type="number"
+                                                    value={globalDiscount}
+                                                    onChange={(e) => setGlobalDiscount(parseFloat(e.target.value) || 0)}
+                                                    className="w-full bg-rose-50/30 border-2 border-rose-100/50 focus:border-rose-300 rounded-2xl px-6 py-4 font-black text-[#1a1a1a] outline-none text-lg"
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+
+                                            <div className="space-y-3 pt-2 font-bold text-[#6c757d] text-sm">
+                                                <div className="flex justify-between">
+                                                    <span>Subtotal</span>
+                                                    <span>MUR {subtotal.toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex justify-between text-rose-500">
+                                                    <span>Discount</span>
+                                                    <span>- MUR {globalDiscount.toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex justify-between pt-3 border-t-2 border-dashed border-gray-200 text-[#107d92] text-xl font-black">
+                                                    <span>TOTAL</span>
+                                                    <span>MUR {grandTotal.toLocaleString()}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setStep(4)} disabled={items.length === 0} className="w-full bg-[#107d92] text-white py-5 rounded-2xl font-black shadow-xl shadow-[#107d92]/20 flex items-center justify-center gap-3">
+                                        Review Proposal Summary <ArrowRight size={20} />
+                                    </button>
+                                </motion.div>
+                            )}
+
+                            {step === 4 && (
+                                <motion.div key="step4" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-6">
+                                    <div className="bg-white border-2 border-[#107d92]/10 rounded-[40px] p-8 space-y-8 shadow-sm">
+                                        <div className="grid grid-cols-2 gap-8">
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-[#6c757d] mb-2">Prepared For</p>
+                                                <p className="font-bold text-[#1a1a1a]">{selectedClient?.name}</p>
+                                                <p className="text-xs text-[#6c757d] mt-1">{selectedClient?.company}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-[#6c757d] mb-2">Summary</p>
+                                                <p className="font-bold text-[#107d92]">{items.length} Product(s)</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            {items.map((item, i) => (
+                                                <div key={i} className="flex justify-between items-center text-sm py-3 border-b border-gray-50 last:border-0 font-medium">
+                                                    <div className="flex-1">
+                                                        <p className="text-[#1a1a1a] font-bold">{item.name}</p>
+                                                        <p className="text-xs text-[#6c757d] mt-0.5">{item.qty} × MUR {item.price.toLocaleString()}</p>
+                                                    </div>
+                                                    <p className="font-bold text-[#1a1a1a]">MUR {(item.qty * item.price).toLocaleString()}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="pt-6 border-t-2 border-gray-100 space-y-3 font-bold">
+                                            {globalDiscount > 0 && (
+                                                <div className="flex justify-between text-sm text-rose-500">
+                                                    <span>Global Discount</span>
+                                                    <span>- MUR {globalDiscount.toLocaleString()}</span>
+                                                </div>
                                             )}
-                                        </AnimatePresence>
-                                    </div>
-
-                                    {/* Overlay to close dropdown when clicking outside */}
-                                    {showClientDropdown && (
-                                        <div
-                                            className="fixed inset-0 z-40"
-                                            onClick={() => setShowClientDropdown(false)}
-                                        ></div>
-                                    )}
-                                </div>
-
-                                <button type="button" onClick={() => setStep(1)} className="flex items-center gap-2 text-[#6c757d] font-bold text-sm lg:text-base mt-2">
-                                    <ArrowLeft size={16} /> Back
-                                </button>
-                            </div>
-                        )}
-
-                        {step === 3 && (
-                            <div className="space-y-6 lg:space-y-8 animate-in fade-in duration-500">
-                                <div className="bg-gray-50 rounded-3xl p-6 lg:p-8 space-y-4 lg:space-y-6">
-                                    <div className="flex justify-between gap-4 pb-4 border-b border-gray-200/50">
-                                        <div className="flex-1">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-[#6c757d] mb-1">To Client</p>
-                                            <p className="font-bold text-[#1a1a1a] text-sm lg:text-base">{selectedClient?.name}</p>
-                                        </div>
-                                        <div className="flex-1 text-right">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-[#6c757d] mb-1">Service</p>
-                                            <p className="font-bold text-[#1a1a1a] text-sm lg:text-base">{selectedProduct?.name}</p>
+                                            <div className="flex justify-between text-[#6c757d] text-sm">
+                                                <span>VAT (15%)</span>
+                                                <span>MUR {vatAmount.toLocaleString()}</span>
+                                            </div>
+                                            <div className="flex justify-between items-end pt-4 font-black text-[#107d92]">
+                                                <span className="text-xs uppercase tracking-widest text-[#1a1a1a]">Total Proposal Amount</span>
+                                                <span className="text-3xl">MUR {grandTotal.toLocaleString()}</span>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div>
-                                            <label className="block text-[10px] font-black uppercase tracking-widest text-[#6c757d] mb-2">Quantity</label>
-                                            <input
-                                                type="number"
-                                                value={qty}
-                                                onChange={(e) => setQty(parseInt(e.target.value) || 0)}
-                                                className="w-full bg-white border-2 border-gray-100 rounded-xl px-4 py-3 font-bold text-sm focus:border-[#107d92] outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black uppercase tracking-widest text-[#6c757d] mb-2">Price (MUR)</label>
-                                            <input
-                                                type="number"
-                                                value={unitPrice}
-                                                onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
-                                                className="w-full bg-white border-2 border-gray-100 rounded-xl px-4 py-3 font-bold text-sm focus:border-[#107d92] outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black uppercase tracking-widest text-[#6c757d] mb-2">Discount (MUR)</label>
-                                            <input
-                                                type="number"
-                                                value={discount}
-                                                onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                                                className="w-full bg-white border-2 border-gray-100 rounded-xl px-4 py-3 font-bold text-sm focus:border-[#107d92] outline-none"
-                                            />
-                                        </div>
+                                    <div className="flex gap-4">
+                                        <button onClick={() => setStep(3)} className="flex-1 py-5 border-2 border-gray-100 rounded-3xl font-black text-[#6c757d] hover:bg-gray-50 transition-all">
+                                            Back & Edit
+                                        </button>
+                                        <button onClick={handleFinalSave} disabled={loading} className="flex-[2] bg-[#107d92] text-white py-5 rounded-3xl font-black shadow-xl shadow-[#107d92]/20 flex items-center justify-center gap-3">
+                                            {loading ? <Loader2 className="animate-spin" /> : <><CheckCircle2 size={20} /> Confirm & Save Proposal</>}
+                                        </button>
                                     </div>
+                                </motion.div>
+                            )}
 
+                            {step === 5 && (
+                                <motion.div key="step5" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center text-center py-10 space-y-8">
+                                    <div className="w-24 h-24 bg-[#107d92]/10 rounded-full flex items-center justify-center text-[#107d92]">
+                                        <CheckCircle2 size={56} strokeWidth={2.5} />
+                                    </div>
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-widest text-[#6c757d] mb-2">Notes</label>
-                                        <textarea
-                                            value={notes}
-                                            onChange={(e) => setNotes(e.target.value)}
-                                            rows={2}
-                                            className="w-full bg-white border-2 border-gray-100 rounded-xl px-4 py-3 text-sm focus:border-[#107d92] outline-none resize-none"
-                                        />
+                                        <h3 className="text-3xl font-black text-[#1a1a1a]">Quotation Ready!</h3>
+                                        <p className="text-[#6c757d] font-bold mt-2">ID: <span className="text-[#107d92]">{savedDoc?.quoteNumber}</span></p>
                                     </div>
 
-                                    <div className="pt-4 border-t border-gray-200/50 space-y-2">
-                                        <div className="flex justify-between items-center text-xs text-[#6c757d] font-bold">
-                                            <span>Subtotal</span>
-                                            <span>MUR {(qty * unitPrice).toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-xs text-rose-500 font-bold">
-                                            <span>Discount</span>
-                                            <span>- MUR {discount.toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-xs text-[#1a1a1a] font-bold pt-2 border-t border-gray-100">
-                                            <span>Amount before VAT</span>
-                                            <span>MUR {((qty * unitPrice) - discount).toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-xs text-[#6c757d] font-bold">
-                                            <span>VAT (15%)</span>
-                                            <span>MUR {(((qty * unitPrice) - discount) * 0.15).toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center pt-4 mt-2 border-t-2 border-[#107d92]/20">
-                                            <span className="text-sm font-black text-[#1a1a1a]">GRAND TOTAL</span>
-                                            <span className="text-2xl font-black text-[#107d92]">MUR {(((qty * unitPrice) - discount) * 1.15).toLocaleString()}</span>
-                                        </div>
+                                    <div className="grid grid-cols-1 gap-4 w-full px-10">
+                                        <button onClick={sendEmailNow} disabled={loading} className="w-full flex items-center justify-center gap-3 bg-[#107d92] text-white py-5 rounded-3xl font-black shadow-lg shadow-[#107d92]/20 hover:scale-[1.02] transition-all">
+                                            {loading ? <Loader2 className="animate-spin" /> : <><Send size={20} /> Email Proposal Now</>}
+                                        </button>
+                                        <button onClick={() => setIsApptModalOpen(true)} className="w-full flex items-center justify-center gap-3 bg-gray-900 text-white py-5 rounded-3xl font-black shadow-lg hover:scale-[1.02] transition-all">
+                                            <Calendar size={20} /> Set Follow-up Meeting
+                                        </button>
+                                        <button onClick={() => onClose(savedDoc)} className="w-full py-4 text-[#6c757d] font-black text-sm uppercase tracking-widest hover:text-[#1a1a1a] transition-all">
+                                            View Quotes Dashboard
+                                        </button>
                                     </div>
-                                </div>
-
-                                <div className="flex gap-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setStep(2)}
-                                        className="flex-1 py-4 border-2 border-gray-100 rounded-2xl font-black text-[#6c757d]"
-                                    >
-                                        Back
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={loading}
-                                        className="flex-[2] bg-[#107d92] text-white py-4 rounded-2xl font-black shadow-lg shadow-[#107d92]/20 flex items-center justify-center gap-2"
-                                    >
-                                        {loading ? <Loader2 className="animate-spin" /> : (
-                                            <>
-                                                <Eye size={18} /> Review & Save
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </form>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
             </motion.div>
+
+            <ClientModal
+                isOpen={isClientModalOpen}
+                onClose={() => setIsClientModalOpen(false)}
+                onSuccess={(client) => { setSelectedClient(client); setStep(2); }}
+            />
+            <AppointmentModal
+                isOpen={isApptModalOpen}
+                onClose={() => setIsApptModalOpen(false)}
+                preselectedClient={selectedClient}
+            />
         </div>
     );
 }

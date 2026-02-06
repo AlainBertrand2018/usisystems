@@ -40,6 +40,17 @@ const styles = StyleSheet.create({
         marginTop: 2,
         color: '#636e72',
     },
+    statusBadge: {
+        marginTop: 8,
+        padding: '4 8',
+        backgroundColor: '#107d92',
+        color: 'white',
+        borderRadius: 4,
+        fontSize: 8,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        alignSelf: 'flex-end',
+    },
     addressGrid: {
         flexDirection: 'row',
         marginTop: 20,
@@ -124,7 +135,7 @@ const styles = StyleSheet.create({
 });
 
 interface PDFProps {
-    type: 'QUOTATION' | 'INVOICE' | 'RECEIPT' | 'STATEMENT';
+    type: 'QUOTATION' | 'INVOICE' | 'RECEIPT' | 'STATEMENT' | 'APPOINTMENT';
     data: any;
     businessInfo: any;
 }
@@ -144,9 +155,21 @@ export const StandardPDF = ({ type, data, businessInfo }: PDFProps) => {
                     </View>
 
                     <View style={styles.headerRight}>
-                        <Text style={styles.docTitle}>{type}</Text>
-                        <Text style={styles.refNumber}>Ref: {data.quoteNumber || data.invoiceNumber || data.receiptNumber || data.id}</Text>
-                        <Text style={styles.dateText}>Date: {data.date?.seconds ? new Date(data.date.seconds * 1000).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')}</Text>
+                        <Text style={styles.docTitle}>
+                            {type === 'QUOTATION' ? 'Quotation' :
+                                type === 'INVOICE' ? 'Tax Invoice' :
+                                    type === 'RECEIPT' ? 'Payment Receipt' :
+                                        type === 'APPOINTMENT' ? 'Appointment Confirmation' : 'Statement'}
+                        </Text>
+                        <Text style={styles.refNumber}>
+                            {data.quoteNumber || data.invoiceNumber || data.receiptNumber || data.id}
+                        </Text>
+                        <Text style={styles.dateText}>
+                            {type === 'APPOINTMENT' ? 'Meeting Log' : 'Date'}: {data.date?.seconds ? new Date(data.date.seconds * 1000).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')}
+                        </Text>
+                        <View style={styles.statusBadge}>
+                            <Text>{data.status || 'Pending'}</Text>
+                        </View>
                     </View>
                 </View>
 
@@ -166,76 +189,105 @@ export const StandardPDF = ({ type, data, businessInfo }: PDFProps) => {
                         </View>
                     </View>
                     <View style={styles.addressBlock}>
-                        <Text style={styles.addressTitle}>Status</Text>
-                        <Text style={{ fontWeight: 'bold', fontSize: 10, color: '#107d92' }}>{data.status || 'Pending'}</Text>
+                        {/* Right side spacer or additional info */}
                     </View>
                 </View>
 
-                {/* Items Table */}
-                <View style={styles.table}>
-                    <View style={styles.tableHeader}>
-                        <Text style={styles.colDesc}>Description</Text>
-                        <Text style={styles.colQty}>Qty</Text>
-                        <Text style={styles.colPrice}>Unit Price</Text>
-                        <Text style={styles.colTotal}>Total</Text>
+                {/* Content Section */}
+                {type === 'APPOINTMENT' ? (
+                    <View style={{ marginTop: 20, padding: 20, backgroundColor: '#f8f9fa', borderRadius: 8 }}>
+                        <Text style={[styles.addressTitle, { marginBottom: 15 }]}>Meeting Schedule</Text>
+                        <View style={{ gap: 10 }}>
+                            <Text style={{ fontSize: 11 }}><Text style={{ fontWeight: 'bold' }}>Subject:</Text> {data.title}</Text>
+                            <Text style={{ fontSize: 11 }}><Text style={{ fontWeight: 'bold' }}>Date & Time:</Text> {data.date ? (data.date.toDate ? data.date.toDate().toLocaleString() : new Date(data.date).toLocaleString()) : 'N/A'}</Text>
+                            <Text style={{ fontSize: 11 }}><Text style={{ fontWeight: 'bold' }}>Location:</Text> {data.location}</Text>
+                            {data.description && (
+                                <View style={{ marginTop: 10 }}>
+                                    <Text style={{ fontWeight: 'bold', fontSize: 10, color: '#107d92' }}>NOTES / DESCRIPTION:</Text>
+                                    <Text style={{ fontSize: 10, marginTop: 4, lineHeight: 1.5 }}>{data.description}</Text>
+                                </View>
+                            )}
+                        </View>
                     </View>
+                ) : (
+                    <View style={styles.table}>
+                        <View style={styles.tableHeader}>
+                            <Text style={styles.colDesc}>Description</Text>
+                            <Text style={styles.colQty}>Qty</Text>
+                            <Text style={styles.colPrice}>Unit Price</Text>
+                            <Text style={styles.colTotal}>Total</Text>
+                        </View>
 
-                    <View style={styles.tableRow}>
-                        <Text style={styles.colDesc}>{data.productName || 'Service Rendered'}</Text>
-                        <Text style={styles.colQty}>{data.qty || 1}</Text>
-                        <Text style={styles.colPrice}>MUR {(data.price || 0).toLocaleString()}</Text>
-                        <Text style={styles.colTotal}>MUR {(data.total || 0).toLocaleString()}</Text>
-                    </View>
-                </View>
-
-                {/* Totals */}
-                <View style={styles.summarySection}>
-                    <View style={styles.summaryBox}>
-                        {type === 'RECEIPT' ? (
-                            <>
-                                <View style={styles.summaryRow}>
-                                    <Text>Original Total</Text>
-                                    <Text>MUR {(data.total || 0).toLocaleString()}</Text>
+                        {data.items && data.items.length > 0 ? (
+                            data.items.map((item: any, i: number) => (
+                                <View key={i} style={styles.tableRow}>
+                                    <Text style={styles.colDesc}>{item.name}</Text>
+                                    <Text style={styles.colQty}>{item.qty}</Text>
+                                    <Text style={styles.colPrice}>MUR {(item.price || 0).toLocaleString()}</Text>
+                                    <Text style={styles.colTotal}>MUR {(item.qty * item.price).toLocaleString()}</Text>
                                 </View>
-                                <View style={styles.summaryRow}>
-                                    <Text>Payment Mode</Text>
-                                    <Text style={{ fontWeight: 'bold', color: '#107d92' }}>{data.paymentMode || 'Cash'}</Text>
-                                </View>
-                                <View style={[styles.summaryRow, { borderTop: 1, borderTopColor: '#f1f2f6', paddingTop: 4, marginTop: 4 }]}>
-                                    <Text style={{ color: '#27ae60', fontWeight: 'bold' }}>Amount Paid</Text>
-                                    <Text style={{ color: '#27ae60', fontWeight: 'bold' }}>MUR {(data.paymentValue || 0).toLocaleString()}</Text>
-                                </View>
-                                <View style={[styles.summaryRow, styles.grandTotal, { color: '#e74c3c' }]}>
-                                    <Text>BALANCE DUE</Text>
-                                    <Text>MUR {(data.balanceDue || 0).toLocaleString()}</Text>
-                                </View>
-                            </>
+                            ))
                         ) : (
-                            <>
-                                <View style={styles.summaryRow}>
-                                    <Text>Subtotal</Text>
-                                    <Text>MUR {(data.subtotal || data.total || 0).toLocaleString()}</Text>
-                                </View>
-                                <View style={styles.summaryRow}>
-                                    <Text style={{ color: '#e74c3c' }}>Discount</Text>
-                                    <Text style={{ color: '#e74c3c' }}>- MUR {(data.discount || 0).toLocaleString()}</Text>
-                                </View>
-                                <View style={[styles.summaryRow, { borderTop: 1, borderTopColor: '#f1f2f6', paddingTop: 4, marginTop: 4 }]}>
-                                    <Text>Amount before VAT</Text>
-                                    <Text>MUR {(data.amountBeforeVAT || ((data.subtotal || data.total || 0) - (data.discount || 0))).toLocaleString()}</Text>
-                                </View>
-                                <View style={styles.summaryRow}>
-                                    <Text>VAT (15%)</Text>
-                                    <Text>MUR {(data.vatAmount || ((data.amountBeforeVAT || ((data.subtotal || data.total || 0) - (data.discount || 0))) * 0.15)).toLocaleString()}</Text>
-                                </View>
-                                <View style={[styles.summaryRow, styles.grandTotal]}>
-                                    <Text>GRAND TOTAL</Text>
-                                    <Text>MUR {(data.total || 0).toLocaleString()}</Text>
-                                </View>
-                            </>
+                            <View style={styles.tableRow}>
+                                <Text style={styles.colDesc}>{data.productName || 'Service Rendered'}</Text>
+                                <Text style={styles.colQty}>{data.qty || 1}</Text>
+                                <Text style={styles.colPrice}>MUR {(data.price || 0).toLocaleString()}</Text>
+                                <Text style={styles.colTotal}>MUR {(data.total || 0).toLocaleString()}</Text>
+                            </View>
                         )}
                     </View>
-                </View>
+                )}
+
+                {/* Totals Section */}
+                {type !== 'APPOINTMENT' && (
+                    <View style={styles.summarySection}>
+                        <View style={styles.summaryBox}>
+                            {type === 'RECEIPT' ? (
+                                <>
+                                    <View style={styles.summaryRow}>
+                                        <Text>Original Total</Text>
+                                        <Text>MUR {(data.total || 0).toLocaleString()}</Text>
+                                    </View>
+                                    <View style={styles.summaryRow}>
+                                        <Text>Payment Mode</Text>
+                                        <Text style={{ fontWeight: 'bold', color: '#107d92' }}>{data.paymentMode || 'Cash'}</Text>
+                                    </View>
+                                    <View style={[styles.summaryRow, { borderTop: 1, borderTopColor: '#f1f2f6', paddingTop: 4, marginTop: 4 }]}>
+                                        <Text style={{ color: '#27ae60', fontWeight: 'bold' }}>Amount Paid</Text>
+                                        <Text style={{ color: '#27ae60', fontWeight: 'bold' }}>MUR {(data.paymentValue || 0).toLocaleString()}</Text>
+                                    </View>
+                                    <View style={[styles.summaryRow, styles.grandTotal, { color: '#e74c3c' }]}>
+                                        <Text>BALANCE DUE</Text>
+                                        <Text>MUR {(data.balanceDue || 0).toLocaleString()}</Text>
+                                    </View>
+                                </>
+                            ) : (
+                                <>
+                                    <View style={styles.summaryRow}>
+                                        <Text>Subtotal</Text>
+                                        <Text>MUR {(data.subtotal || data.total || 0).toLocaleString()}</Text>
+                                    </View>
+                                    <View style={styles.summaryRow}>
+                                        <Text style={{ color: '#e74c3c' }}>Discount</Text>
+                                        <Text style={{ color: '#e74c3c' }}>- MUR {(data.discount || 0).toLocaleString()}</Text>
+                                    </View>
+                                    <View style={[styles.summaryRow, { borderTop: 1, borderTopColor: '#f1f2f6', paddingTop: 4, marginTop: 4 }]}>
+                                        <Text>Amount before VAT</Text>
+                                        <Text>MUR {(data.amountBeforeVAT || ((data.subtotal || data.total || 0) - (data.discount || 0))).toLocaleString()}</Text>
+                                    </View>
+                                    <View style={styles.summaryRow}>
+                                        <Text>VAT (15%)</Text>
+                                        <Text>MUR {(data.vatAmount || ((data.amountBeforeVAT || ((data.subtotal || data.total || 0) - (data.discount || 0))) * 0.15)).toLocaleString()}</Text>
+                                    </View>
+                                    <View style={[styles.summaryRow, styles.grandTotal]}>
+                                        <Text>GRAND TOTAL</Text>
+                                        <Text>MUR {(data.total || 0).toLocaleString()}</Text>
+                                    </View>
+                                </>
+                            )}
+                        </View>
+                    </View>
+                )}
 
                 {/* Footer */}
                 <View style={styles.footer} fixed>

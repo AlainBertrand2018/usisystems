@@ -9,9 +9,10 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 interface ClientModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onSuccess?: (client: any) => void;
 }
 
-export default function ClientModal({ isOpen, onClose }: ClientModalProps) {
+export default function ClientModal({ isOpen, onClose, onSuccess }: ClientModalProps) {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
@@ -30,11 +31,18 @@ export default function ClientModal({ isOpen, onClose }: ClientModalProps) {
         setLoading(true);
 
         try {
-            await addDoc(collection(db, 'clients'), {
+            const docRef = await addDoc(collection(db, 'clients'), {
                 ...formData,
                 status: 'active',
                 createdAt: serverTimestamp()
             });
+            const clientData = {
+                id: docRef.id,
+                ...formData,
+                status: 'active',
+                createdAt: new Date()
+            };
+            if (onSuccess) onSuccess(clientData);
             alert('Client added successfully!');
             onClose();
             setFormData({ name: '', company: '', email: '', phone: '', address: '', brn: '', vat: '' });
