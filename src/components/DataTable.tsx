@@ -97,18 +97,39 @@ export default function DataTable({
             return;
         }
 
-        const email = item.clientEmail || item.email;
+        const email = item.clientEmail || item.email || item.businessEmail;
         if (!email) {
             alert("This client does not have an email address set.");
             return;
         }
 
         setSendingId(item.id);
-        // Simulate email sending delay
-        setTimeout(() => {
-            alert(`SUCCESS: Document ${item.quoteNumber || item.invoiceNumber || item.receiptNumber || item.id} sent to ${email} with PDF attached.`);
+
+        try {
+            const response = await fetch('/api/send-document', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    documentId: item.id,
+                    collectionName: collectionName,
+                    type: pdfType || 'DOCUMENT',
+                    clientEmail: email
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert(`SUCCESS: Document sent to ${email} via Resend.`);
+            } else {
+                throw new Error(result.error || 'Failed to send email');
+            }
+        } catch (error: any) {
+            console.error("Email Error:", error);
+            alert(`ERROR: ${error.message}`);
+        } finally {
             setSendingId(null);
-        }, 1500);
+        }
     };
 
     const filteredData = data.filter((item) => {

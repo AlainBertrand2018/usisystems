@@ -45,7 +45,7 @@ export default function InvoicesPage() {
         const paymentValue = paymentData.amount || invoice.total;
         const balanceDue = (invoice.total || 0) - paymentValue;
 
-        await addDoc(collection(db, 'receipts'), {
+        const docRef = await addDoc(collection(db, 'receipts'), {
             receiptNumber,
             invoiceNumber: invoice.invoiceNumber,
             invoiceId: invoice.id,
@@ -63,8 +63,21 @@ export default function InvoicesPage() {
             status: 'received'
         });
 
-        // Trigger Send PDF (Mocked)
-        console.log(`Sending PDF to ${invoice.clientEmail || 'client'}`);
+        // Trigger Send PDF via API
+        try {
+            await fetch('/api/send-document', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    documentId: docRef.id,
+                    collectionName: 'receipts',
+                    type: 'RECEIPT',
+                    clientEmail: invoice.clientEmail
+                })
+            });
+        } catch (err) {
+            console.error("Auto-send receipt error:", err);
+        }
     };
 
     const handlePaymentSubmit = async (paymentData: any) => {
