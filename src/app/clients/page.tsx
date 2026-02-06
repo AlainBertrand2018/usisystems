@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import DataTable from '@/components/DataTable';
 import ClientModal from '@/components/ClientModal';
