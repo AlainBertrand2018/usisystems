@@ -1,18 +1,48 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import DataTable from '@/components/DataTable';
 import ProductModal from '@/components/ProductModal';
 import { Plus } from 'lucide-react';
 
 export default function ProductsPage() {
+    const router = useRouter();
     const [showModal, setShowModal] = useState(false);
 
     const columns = [
-        { key: 'name', label: 'Product Name' },
-        { key: 'category', label: 'Category' },
-        { key: 'price', label: 'Base Price', format: (val: number) => `MUR ${val?.toLocaleString()}` },
-        { key: 'description', label: 'Description' },
+        {
+            key: 'name',
+            label: 'Product Name',
+            format: (val: string, row: any) => (
+                <button
+                    onClick={() => router.push(`/products/${row.id}`)}
+                    className="text-left group"
+                >
+                    <p className="font-bold text-[#1a1a1a] group-hover:text-[#107d92] transition-colors">{val}</p>
+                    <p className="text-[10px] text-[#6c757d] font-medium">{row.sku || 'No SKU'}</p>
+                </button>
+            )
+        },
+        {
+            key: 'category',
+            label: 'Category',
+            format: (val: string) => (
+                <span className="px-2 py-1 bg-gray-50 text-gray-500 rounded-lg text-[10px] font-black uppercase">
+                    {val || 'Uncategorized'}
+                </span>
+            )
+        },
+        { key: 'price', label: 'Base Price', format: (val: any) => <span className="font-black text-[#107d92]">MUR {parseFloat(val || 0).toLocaleString()}</span> },
+        {
+            key: 'stock',
+            label: 'Inventory',
+            format: (val: any) => (
+                <span className={`font-bold ${parseFloat(val) < 10 ? 'text-rose-500' : 'text-[#1a1a1a]'}`}>
+                    {val || '∞'}
+                </span>
+            )
+        },
     ];
 
     return (

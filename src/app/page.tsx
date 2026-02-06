@@ -4,33 +4,42 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogIn, X, Loader2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function SplashPage() {
     const router = useRouter();
+    const { login } = useAuth();
     const [showLogin, setShowLogin] = useState(false);
     const [pendingAction, setPendingAction] = useState<string | null>(null);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null); // Add error state
 
     const handleCTA = (action: string) => {
         setPendingAction(action);
         setShowLogin(true);
     };
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError(null);
 
-        // Simulate authentication
-        setTimeout(() => {
+        try {
+            await login(email); // Use the login function from AuthContext
             localStorage.setItem('unideals_auth', 'true');
             if (pendingAction === 'new_quote') {
                 router.push('/quotations?action=new');
             } else {
                 router.push('/dashboard');
             }
-        }, 1500);
+        } catch (err: any) {
+            console.error("Login Error:", err);
+            setError("Unauthorized access. Access is restricted to pre-registered members.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -112,6 +121,11 @@ export default function SplashPage() {
                                         onChange={(e) => setPassword(e.target.value)}
                                     />
                                 </div>
+                                {error && (
+                                    <p className="text-rose-500 text-[10px] font-black uppercase text-center animate-pulse">
+                                        {error}
+                                    </p>
+                                )}
                                 <button
                                     disabled={loading}
                                     className="w-full bg-[#107d92] text-white py-5 rounded-[20px] font-black text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-[#107d92]/20 disabled:opacity-50 flex items-center justify-center gap-2"

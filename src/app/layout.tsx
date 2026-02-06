@@ -12,6 +12,8 @@ export const metadata = {
     description: 'Premium CRM Solutions',
 };
 
+import { AuthProvider } from '@/context/AuthContext';
+
 export default function RootLayout({
     children,
 }: {
@@ -20,9 +22,11 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body className={`${outfit.variable} font-sans`}>
-                <ClientLayoutWrapper>
-                    {children}
-                </ClientLayoutWrapper>
+                <AuthProvider>
+                    <ClientLayoutWrapper>
+                        {children}
+                    </ClientLayoutWrapper>
+                </AuthProvider>
             </body>
         </html>
     );

@@ -8,7 +8,7 @@ import PDFDownloadButton from './pdf/PDFDownloadButton';
 
 interface DataTableProps {
     collectionName: string;
-    columns: { key: string; label: string; format?: (val: any) => React.ReactNode }[];
+    columns: { key: string; label: string; format?: (val: any, row?: any) => React.ReactNode }[];
     onEdit?: (item: any) => void;
     onClone?: (item: any) => void;
     onDownload?: (item: any) => void;
@@ -221,10 +221,10 @@ export default function DataTable({
                                                 onClick={() => onView(item)}
                                                 className="text-[#107d92] hover:underline text-left font-black"
                                             >
-                                                {col.format ? col.format(item[col.key]) : item[col.key]}
+                                                {col.format ? col.format(item[col.key], item) : item[col.key]}
                                             </button>
                                         ) : (
-                                            col.format ? col.format(item[col.key]) : item[col.key]
+                                            col.format ? col.format(item[col.key], item) : item[col.key]
                                         )}
                                     </td>
                                 ))}

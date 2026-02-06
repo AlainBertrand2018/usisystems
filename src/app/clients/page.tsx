@@ -1,23 +1,36 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import DataTable from '@/components/DataTable';
 import ClientModal from '@/components/ClientModal';
 import { Plus } from 'lucide-react';
 
 export default function ClientsPage() {
+    const router = useRouter();
     const [showModal, setShowModal] = useState(false);
 
     const columns = [
-        { key: 'name', label: 'Client Name' },
-        { key: 'company', label: 'Company' },
+        {
+            key: 'name',
+            label: 'Client Name',
+            format: (val: string, row: any) => (
+                <button
+                    onClick={() => router.push(`/clients/${row.id}`)}
+                    className="text-left group"
+                >
+                    <p className="font-bold text-[#1a1a1a] group-hover:text-[#107d92] transition-colors">{val}</p>
+                    <p className="text-[10px] text-[#6c757d] font-medium">{row.company || 'Private Individual'}</p>
+                </button>
+            )
+        },
         { key: 'email', label: 'Email' },
         { key: 'phone', label: 'Phone' },
         {
             key: 'status',
             label: 'Status',
             format: (val: string) => (
-                <span className={`px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700`}>
+                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600`}>
                     {val || 'Active'}
                 </span>
             )

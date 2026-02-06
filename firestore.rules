@@ -1,6 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Only Super Admin can create/update users as 'admin'
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if 
+        (request.resource.data.role == 'user') || 
+        (request.auth != null && request.auth.token.email == 'bertrand.chagal@gmail.com');
+    }
+
     match /{document=**} {
       allow read, write: if true;
     }

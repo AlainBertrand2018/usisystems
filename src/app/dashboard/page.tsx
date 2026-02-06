@@ -3,11 +3,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
-import { FileText, UserPlus, Package, Calendar, TrendingUp, HandCoins, Receipt, Plus, ArrowRight } from 'lucide-react';
+import { FileText, UserPlus, Package, Calendar, TrendingUp, HandCoins, Receipt, Plus, ArrowRight, Shield } from 'lucide-react';
 import DataTable from '@/components/DataTable';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import AdminOnboardingModal from '@/components/AdminOnboardingModal';
 
 export default function DashboardPage() {
+    const { user } = useAuth();
+    const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
     const [rawStats, setRawStats] = useState({
         quotes: [] as any[],
         clients: 0,
@@ -97,6 +101,15 @@ export default function DashboardPage() {
                     <p className="text-[#6c757d] text-sm font-medium">Real-time performance</p>
                 </div>
                 <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 md:pb-0">
+                    {user?.role === 'super_admin' && (
+                        <button
+                            onClick={() => setIsOnboardingOpen(true)}
+                            className="flex-shrink-0 flex items-center justify-center gap-2 px-5 py-3 lg:px-6 lg:py-3 rounded-[20px] font-black text-sm lg:font-semibold transition-all active:scale-95 shadow-sm bg-black text-white"
+                        >
+                            <Shield size={18} />
+                            <span>Onboard Business</span>
+                        </button>
+                    )}
                     {quickActions.map((action) => (
                         <Link key={action.name} href={action.href} className={`flex-shrink-0 flex items-center justify-center gap-2 px-5 py-3 lg:px-6 lg:py-3 rounded-[20px] font-black text-sm lg:font-semibold transition-all active:scale-95 shadow-sm ${action.color}`}>
                             <action.icon size={18} />
@@ -105,6 +118,8 @@ export default function DashboardPage() {
                     ))}
                 </div>
             </div>
+
+            <AdminOnboardingModal isOpen={isOnboardingOpen} onClose={() => setIsOnboardingOpen(false)} />
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">

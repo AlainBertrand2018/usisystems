@@ -14,6 +14,7 @@ import {
     Calendar,
     LogOut
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 const sidebarLinks = [
     { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
@@ -29,6 +30,7 @@ const sidebarLinks = [
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const { user, logout } = useAuth();
 
     return (
         <nav className="w-72 bg-white border-right border-[#eef2f3] h-screen sticky top-0 hidden lg:flex flex-col p-6">
@@ -61,19 +63,19 @@ export default function Sidebar() {
 
             <div className="mt-auto pt-6 border-t border-[#f0f0f0]">
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#107d92] text-white rounded-xl flex items-center justify-center font-bold">A</div>
-                        <div>
-                            <p className="text-sm font-semibold">Admin</p>
-                            <p className="text-xs text-[#6c757d]">Administrator</p>
+                    <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="w-10 h-10 bg-[#107d92] text-white rounded-xl flex items-center justify-center font-bold shrink-0 uppercase">
+                            {user?.displayName?.[0] || user?.email?.[0] || 'U'}
+                        </div>
+                        <div className="overflow-hidden">
+                            <p className="text-sm font-semibold truncate">{user?.displayName || 'User'}</p>
+                            <p className="text-xs text-[#6c757d] capitalize">{user?.role?.replace('_', ' ') || 'Member'}</p>
                         </div>
                     </div>
                     <button
-                        onClick={() => {
-                            localStorage.removeItem('unideals_auth');
-                            window.location.href = '/';
-                        }}
-                        className="text-[#6c757d] hover:text-rose-500 transition-colors"
+                        onClick={logout}
+                        className="text-[#6c757d] hover:text-rose-500 transition-colors ml-2"
+                        title="Sign Out"
                     >
                         <LogOut size={20} />
                     </button>

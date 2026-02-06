@@ -6,17 +6,22 @@ import { X, CheckCircle, Shield, Mail, User, Loader2 } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
+import { useAuth } from '@/context/AuthContext';
+import ImageUpload from './ImageUpload';
+
 interface UserModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
 export default function UserModal({ isOpen, onClose }: UserModalProps) {
+    const { user: currentUser } = useAuth();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         displayName: '',
         email: '',
-        role: 'user' as 'super_admin' | 'admin' | 'user'
+        role: 'user' as 'super_admin' | 'admin' | 'user',
+        photoURL: ''
     });
 
     if (!isOpen) return null;
@@ -28,11 +33,12 @@ export default function UserModal({ isOpen, onClose }: UserModalProps) {
         try {
             await addDoc(collection(db, 'users'), {
                 ...formData,
+                addedBy: currentUser?.email || 'system',
                 createdAt: serverTimestamp()
             });
             alert('User account created!');
             onClose();
-            setFormData({ displayName: '', email: '', role: 'user' });
+            setFormData({ displayName: '', email: '', role: 'user', photoURL: '' });
         } catch (error) {
             console.error("Error adding user:", error);
             alert('Failed to create user.');
@@ -70,6 +76,15 @@ export default function UserModal({ isOpen, onClose }: UserModalProps) {
                     </div>
 
                     <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto no-scrollbar">
+                        <div className="flex flex-col items-center pb-4 border-b border-gray-50">
+                            <ImageUpload
+                                path="user_photos"
+                                currentUrl={formData.photoURL}
+                                onUploadComplete={(url) => setFormData({ ...formData, photoURL: url })}
+                                label="Profile Photo"
+                            />
+                        </div>
+
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <label className="block text-[10px] font-black text-[#6c757d] uppercase px-1">Full Name</label>
@@ -103,21 +118,29 @@ export default function UserModal({ isOpen, onClose }: UserModalProps) {
 
                             <div className="space-y-2">
                                 <label className="block text-[10px] font-black text-[#6c757d] uppercase px-1">System Role</label>
-                                <div className="grid grid-cols-3 gap-3">
-                                    {(['user', 'admin', 'super_admin'] as const).map((r) => (
+                                <div className="grid grid-cols-2 gap-3">
+                                    {(['user', 'admin'] as const).filter(r => {
+                                        if (r === 'admin' && currentUser?.role !== 'super_admin') return false;
+                                        return true;
+                                    }).map((r) => (
                                         <button
                                             key={r}
                                             type="button"
                                             onClick={() => setFormData({ ...formData, role: r })}
                                             className={`py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest border-2 transition-all ${formData.role === r
-                                                    ? 'bg-[#107d92]/5 border-[#107d92] text-[#107d92]'
-                                                    : 'bg-gray-50 border-transparent text-gray-400 hover:border-gray-200'
+                                                ? 'bg-[#107d92]/5 border-[#107d92] text-[#107d92]'
+                                                : 'bg-gray-50 border-transparent text-gray-400 hover:border-gray-200'
                                                 }`}
                                         >
-                                            {r.replace('_', ' ')}
+                                            {r}
                                         </button>
                                     ))}
                                 </div>
+                                {currentUser?.role !== 'super_admin' && (
+                                    <p className="text-[10px] font-bold text-rose-500 mt-2 px-1 italic">
+                                        * Only Super Admins can assign Admin roles.
+                                    </p>
+                                )}
                             </div>
                         </div>
 
