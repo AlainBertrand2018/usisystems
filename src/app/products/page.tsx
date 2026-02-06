@@ -15,7 +15,7 @@ export default function ProductsPage() {
             <div className="flex justify-between items-center px-2">
                 <h2 className="text-xl font-bold text-[#1a1a1a]">Product Inventory</h2>
             </div>
-            <DataTable collectionName="business_products" columns={columns} />
+            <DataTable collectionName="business_products" columns={columns} defaultOrderBy="createdAt" />
         </div>
     );
 }

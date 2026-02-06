@@ -131,7 +131,8 @@ const seedData = async () => {
             transactions: [
                 { type: "invoice", reference: "INV-001", amount: 20000, date: new Date() },
                 { type: "payment", reference: "RCP-001", amount: -20000, date: new Date() }
-            ]
+            ],
+            date: serverTimestamp()
         });
 
         // 9. Appointments
