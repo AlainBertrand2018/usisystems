@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query, orderBy, limit, where } from 'firebase/firestore';
-import { Edit2, FileDown, AlertCircle, Copy, Eye, Search, Mail, Loader2, Banknote, FileCheck, Landmark } from 'lucide-react';
+import { collection, onSnapshot, query, orderBy, limit, where, doc, deleteDoc } from 'firebase/firestore';
+import { Edit2, FileDown, AlertCircle, Copy, Eye, Search, Mail, Loader2, Banknote, FileCheck, Landmark, Trash2 } from 'lucide-react';
 import PDFDownloadButton from './pdf/PDFDownloadButton';
 import { useAuth } from '@/context/AuthContext';
 
@@ -18,6 +18,7 @@ interface DataTableProps {
     onConvert?: (item: any) => void;
     onRegisterPayment?: (item: any) => void;
     onBanked?: (item: any) => void;
+    onDelete?: (item: any) => void;
     pdfType?: 'QUOTATION' | 'INVOICE' | 'RECEIPT' | 'STATEMENT';
     defaultOrderBy?: string;
 }
@@ -33,6 +34,7 @@ export default function DataTable({
     onConvert,
     onRegisterPayment,
     onBanked,
+    onDelete,
     pdfType,
     defaultOrderBy = 'date'
 }: DataTableProps) {
@@ -42,6 +44,35 @@ export default function DataTable({
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [sendingId, setSendingId] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    const handleDeleteInternal = async (item: any) => {
+        if (collectionName === 'quotations' || collectionName === 'invoices') {
+            alert("PROCEDURAL LOCK: Financial documents like Quotations and Invoices cannot be deleted to maintain audit integrity. Please use 'Clone' to create a new version instead.");
+            return;
+        }
+
+        if (item.role === 'super_admin' && user?.role !== 'super_admin') {
+            alert("SECURITY ALERT: You are not authorized to delete a Super Admin.");
+            return;
+        }
+
+        if (!window.confirm("ARE YOU SURE? This action is permanent and cannot be undone.")) return;
+
+        setDeletingId(item.id);
+        try {
+            if (onDelete) {
+                await onDelete(item);
+            } else {
+                await deleteDoc(doc(db, collectionName, item.id));
+            }
+        } catch (err) {
+            console.error("Delete error:", err);
+            alert("Failed to delete item.");
+        } finally {
+            setDeletingId(null);
+        }
+    };
 
     useEffect(() => {
         if (!user) return;
@@ -321,6 +352,15 @@ export default function DataTable({
                                                 <FileDown size={16} />
                                             </button>
                                         )}
+
+                                        <button
+                                            onClick={() => handleDeleteInternal(item)}
+                                            disabled={deletingId === item.id}
+                                            className="p-2 bg-rose-50 rounded-xl text-rose-500 hover:bg-rose-500 hover:text-white transition-all disabled:opacity-50"
+                                            title="Delete Permanently"
+                                        >
+                                            {deletingId === item.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
