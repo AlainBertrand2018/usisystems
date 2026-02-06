@@ -41,13 +41,17 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
             const docRef = doc(db, collectionMap[type], data.id);
             await updateDoc(docRef, { status: newStatus });
 
-            // Trigger Invoice generation if Quote is marked WON
             if (type === 'QUOTATION' && newStatus === 'Won') {
                 const invRef = await addDoc(collection(db, 'invoices'), {
                     invoiceNumber: data.quoteNumber.replace('Q-', 'INV-'),
                     clientId: data.clientId,
                     clientName: data.clientName,
                     clientCompany: data.clientCompany || 'Business Default',
+                    clientAddress: data.clientAddress || '',
+                    clientBRN: data.clientBRN || '',
+                    clientVAT: data.clientVAT || '',
+                    clientPhone: data.clientPhone || '',
+                    clientEmail: data.clientEmail || '',
                     total: data.total,
                     status: 'pending',
                     date: serverTimestamp(),
@@ -57,7 +61,7 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
                     price: data.price,
                     notes: data.notes
                 });
-                alert(`Quotation WON! Invoice generated: ${data.quoteNumber.replace('Q-', 'INV-')}`);
+                alert(`Quotation WON! Invoice generated.`);
             } else {
                 alert(`Status updated to ${newStatus}`);
             }
@@ -69,6 +73,22 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
         }
     };
 
+    const getVal = (obj: any, keys: string[]) => {
+        if (!obj) return '';
+        for (const key of keys) {
+            if (obj[key]) return obj[key];
+        }
+        return '';
+    };
+
+    const bName = getVal(businessDetails, ['name', 'Name', 'businessName']);
+    const bAddress = getVal(businessDetails, ['address', 'Address', 'businessAddress']);
+    const bBRN = getVal(businessDetails, ['brn', 'BRN', 'businessBRN']);
+    const bVAT = getVal(businessDetails, ['vat', 'VAT', 'businessVAT']);
+    const bPhone = getVal(businessDetails, ['phone', 'Phone', 'businessPhone', 'tel', 'Tel']);
+    const bEmail = getVal(businessDetails, ['email', 'Email', 'businessEmail']);
+    const bWeb = getVal(businessDetails, ['website', 'Website', 'websiteURL', 'URL', 'url', 'Web', 'web']);
+
     return (
         <div className="fixed inset-0 z-[100] bg-white flex flex-col font-sans overflow-hidden lg:inset-10 lg:rounded-[40px] lg:shadow-2xl lg:border lg:border-gray-200">
             {/* Action Bar */}
@@ -78,7 +98,6 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
                 </button>
 
                 <div className="flex items-center gap-3">
-                    {/* Status Controls for Quotation */}
                     {type === 'QUOTATION' && (
                         <div className="flex bg-gray-50 p-1.5 rounded-2xl gap-1 mr-4">
                             {[
@@ -92,8 +111,8 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
                                     onClick={() => handleUpdateStatus(btn.s)}
                                     disabled={isUpdating || data.status === btn.s}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${data.status === btn.s
-                                        ? `${btn.bg} ${btn.color} ring-1 ring-inset ring-current`
-                                        : 'text-gray-400 hover:bg-white'
+                                            ? `${btn.bg} ${btn.color} ring-1 ring-inset ring-current`
+                                            : 'text-gray-400 hover:bg-white'
                                         }`}
                                 >
                                     <btn.icon size={14} />
@@ -113,23 +132,25 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
             {/* Document Content */}
             <div className="flex-1 overflow-y-auto p-8 lg:p-12 no-scrollbar bg-white">
                 <div className="max-w-3xl mx-auto space-y-12 text-[#1a1a1a]">
-                    {/* Header */}
                     <div className="flex justify-between items-start">
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                             <img
                                 src="/images/unideal_logo.webp"
                                 alt="UniDeals Logo"
-                                className="w-40"
+                                className="w-48 mb-4"
                             />
                             <div>
-                                <h1 className="text-xl font-black uppercase tracking-tighter">{businessDetails?.name || 'UNIDEALS Ltd'}</h1>
-                                <p className="text-xs text-[#6c757d] whitespace-pre-line leading-relaxed">
-                                    {businessDetails?.address || 'Ebène Cybercity, Mauritius'}
-                                    {businessDetails?.brn && `\nBRN: ${businessDetails.brn}`}
-                                    {businessDetails?.phone && `\nTel: ${businessDetails.phone}`}
-                                    {businessDetails?.email && `\nEmail: ${businessDetails.email}`}
-                                    {businessDetails?.website && `\nWeb: ${businessDetails.website}`}
-                                </p>
+                                <h1 className="text-xl font-black uppercase tracking-tighter">{bName || 'UNIDEALS Ltd'}</h1>
+                                <div className="text-xs text-[#6c757d] space-y-1 mt-2">
+                                    <p>{bAddress}</p>
+                                    <div className="flex gap-4">
+                                        {bBRN && <p><span className="font-black text-gray-400">BRN:</span> {bBRN}</p>}
+                                        {bVAT && <p><span className="font-black text-gray-400">VAT:</span> {bVAT}</p>}
+                                    </div>
+                                    <p><span className="font-black text-gray-400">Tel:</span> {bPhone}</p>
+                                    <p><span className="font-black text-gray-400">Email:</span> {bEmail}</p>
+                                    <p><span className="font-black text-gray-400">Web:</span> {bWeb}</p>
+                                </div>
                             </div>
                         </div>
                         <div className="text-right">
@@ -145,26 +166,31 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
 
                     <div className="h-[2px] bg-gray-100 w-full"></div>
 
-                    {/* Customer Info */}
                     <div className="grid grid-cols-2 gap-10">
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-[#107d92] mb-3">Bill To</p>
                             <h3 className="text-lg font-black">{data.clientName}</h3>
-                            <p className="text-sm text-[#6c757d] mt-1 italic">{data.clientCompany}</p>
+                            <div className="text-sm text-[#6c757d] space-y-1 mt-2">
+                                <p className="italic">{data.clientCompany}</p>
+                                {data.clientAddress && <p>{data.clientAddress}</p>}
+                                {data.clientBRN && <p>BRN: {data.clientBRN}</p>}
+                                {data.clientVAT && <p>VAT: {data.clientVAT}</p>}
+                                {data.clientPhone && <p>Tel: {data.clientPhone}</p>}
+                                {data.clientEmail && <p>{data.clientEmail}</p>}
+                            </div>
                         </div>
                         <div className="text-right">
                             <p className="text-[10px] font-black uppercase tracking-widest text-[#107d92] mb-3">Current Status</p>
                             <span className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest ${data.status === 'Won' ? 'bg-emerald-100 text-emerald-700' :
-                                data.status === 'Sent' ? 'bg-blue-100 text-blue-700' :
-                                    data.status === 'Rejected' ? 'bg-rose-100 text-rose-700' :
-                                        'bg-amber-100 text-amber-700'
+                                    data.status === 'Sent' ? 'bg-blue-100 text-blue-700' :
+                                        data.status === 'Rejected' ? 'bg-rose-100 text-rose-700' :
+                                            'bg-amber-100 text-amber-700'
                                 }`}>
                                 {data.status || 'To Send'}
                             </span>
                         </div>
                     </div>
 
-                    {/* Items Table */}
                     <div className="mt-12">
                         <table className="w-full text-left">
                             <thead>
@@ -189,7 +215,6 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
                         </table>
                     </div>
 
-                    {/* Summary */}
                     <div className="flex justify-end pt-10">
                         <div className="w-full max-w-xs space-y-4">
                             <div className="flex justify-between text-sm">

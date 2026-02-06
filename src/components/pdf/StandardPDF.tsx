@@ -1,36 +1,39 @@
 'use client';
 
-import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
-
-// Register a premium font (optional, using standard Helvetica for maximum reliability/speed)
-// But we'll use bold weights and spacing to make it look "Outstanding"
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
     page: {
-        padding: 50,
+        padding: 40,
         fontFamily: 'Helvetica',
-        fontSize: 10,
+        fontSize: 9,
         color: '#2d3436',
-    },
-    accentStrip: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 8,
-        backgroundColor: '#107d92',
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 10,
-        marginBottom: 40,
-        borderBottom: 2,
+        marginBottom: 30,
+        borderBottom: 1,
         borderBottomColor: '#f1f2f6',
         paddingBottom: 20,
     },
+    businessColumn: {
+        flexDirection: 'column',
+    },
     logo: {
-        width: 120,
+        width: 140,
+        marginBottom: 10,
+    },
+    businessName: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        marginBottom: 4,
+    },
+    businessDetail: {
+        fontSize: 8,
+        color: '#636e72',
+        marginBottom: 2,
     },
     headerRight: {
         textAlign: 'right',
@@ -44,12 +47,17 @@ const styles = StyleSheet.create({
     refNumber: {
         fontSize: 10,
         marginTop: 5,
+        fontWeight: 'bold',
+    },
+    dateText: {
+        fontSize: 9,
+        marginTop: 2,
         color: '#636e72',
     },
     addressGrid: {
         flexDirection: 'row',
-        gap: 50,
-        marginBottom: 40,
+        marginTop: 20,
+        marginBottom: 30,
     },
     addressBlock: {
         flex: 1,
@@ -62,22 +70,27 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         letterSpacing: 1,
     },
+    clientInfo: {
+        fontSize: 9,
+        lineHeight: 1.4,
+    },
     table: {
-        marginTop: 20,
+        marginTop: 10,
     },
     tableHeader: {
         flexDirection: 'row',
         backgroundColor: '#f8f9fa',
-        borderBottom: 1,
-        borderBottomColor: '#dfe6e9',
-        padding: 8,
+        borderBottom: 2,
+        borderBottomColor: '#107d92',
+        padding: 10,
         fontWeight: 'bold',
+        fontSize: 10,
     },
     tableRow: {
         flexDirection: 'row',
         borderBottom: 1,
         borderBottomColor: '#f1f2f6',
-        padding: 8,
+        padding: 10,
         alignItems: 'center',
     },
     colDesc: { flex: 4 },
@@ -100,6 +113,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginBottom: 5,
+        fontSize: 10,
     },
     grandTotal: {
         fontSize: 14,
@@ -107,32 +121,19 @@ const styles = StyleSheet.create({
         color: '#107d92',
         marginTop: 10,
     },
-    footerContainer: {
+    footer: {
         position: 'absolute',
         bottom: 30,
-        left: 50,
-        right: 50,
+        left: 40,
+        right: 40,
         borderTop: 1,
-        borderTopColor: '#dfe6e9',
-        paddingTop: 15,
+        borderTopColor: '#f1f2f6',
+        paddingTop: 10,
         textAlign: 'center',
     },
     footerText: {
-        fontSize: 8,
+        fontSize: 7,
         color: '#b2bec3',
-        marginBottom: 5,
-    },
-    pageNumber: {
-        fontSize: 8,
-        color: '#107d92',
-        fontWeight: 'bold',
-    },
-    notes: {
-        marginTop: 50,
-        padding: 15,
-        backgroundColor: '#fdfdfd',
-        borderLeft: 3,
-        borderLeftColor: '#107d92',
     }
 });
 
@@ -142,99 +143,114 @@ interface PDFProps {
     businessInfo: any;
 }
 
-export const StandardPDF = ({ type, data, businessInfo }: PDFProps) => (
-    <Document>
-        <Page size="A4" style={styles.page}>
-            <View style={styles.accentStrip} fixed />
-            {/* Header */}
-            <View style={styles.header} fixed>
-                <View>
-                    <Image
-                        src={typeof window !== 'undefined' ? `${window.location.origin}/images/unideal_logo.webp` : '/images/unideal_logo.webp'}
-                        style={{ width: 120, marginBottom: 8 }}
-                    />
-                    <Text style={{ fontWeight: 'bold', fontSize: 10 }}>{businessInfo.name}</Text>
-                    <Text style={{ fontSize: 7, color: '#636e72', marginTop: 2 }}>{businessInfo.address}</Text>
-                    <Text style={{ fontSize: 7, color: '#636e72' }}>BRN: {businessInfo.brn}</Text>
-                    <Text style={{ fontSize: 7, color: '#636e72' }}>Tel: {businessInfo.phone}</Text>
-                    <Text style={{ fontSize: 7, color: '#636e72' }}>Email: {businessInfo.email}</Text>
-                    <Text style={{ fontSize: 7, color: '#636e72' }}>Web: {businessInfo.website}</Text>
-                </View>
-                <View style={styles.headerRight}>
-                    <Text style={styles.docTitle}>{type}</Text>
-                    <Text style={styles.refNumber}>Ref: {data.quoteNumber || data.invoiceNumber || data.id}</Text>
-                    <Text style={styles.refNumber}>Date: {new Date(data.date?.seconds * 1000).toLocaleDateString()}</Text>
-                </View>
-            </View>
+export const StandardPDF = ({ type, data, businessInfo }: PDFProps) => {
+    // Helper to get field value regardless of case
+    const getVal = (obj: any, keys: string[]) => {
+        for (const key of keys) {
+            if (obj[key]) return obj[key];
+        }
+        return '';
+    };
 
-            {/* Client Info Grid */}
-            <View style={styles.addressGrid}>
-                <View style={styles.addressBlock}>
-                    <Text style={styles.addressTitle}>Bill To</Text>
-                    <Text style={{ fontWeight: 'bold', fontSize: 11 }}>{data.clientName}</Text>
-                    <Text style={{ fontSize: 9, color: '#636e72', marginTop: 2 }}>{data.clientCompany || data.company}</Text>
-                    <Text style={{ fontSize: 9, color: '#636e72' }}>{data.clientEmail || ''}</Text>
-                </View>
-                <View style={styles.addressBlock}>
-                    <Text style={styles.addressTitle}>Payment Status</Text>
-                    <Text style={{ fontWeight: 'bold', color: '#107d92', fontSize: 10 }}>{data.status || 'Pending'}</Text>
-                </View>
-            </View>
+    const bName = getVal(businessInfo, ['name', 'Name', 'businessName']);
+    const bAddress = getVal(businessInfo, ['address', 'Address', 'businessAddress']);
+    const bBRN = getVal(businessInfo, ['brn', 'BRN', 'businessBRN']);
+    const bVAT = getVal(businessInfo, ['vat', 'VAT', 'businessVAT']);
+    const bPhone = getVal(businessInfo, ['phone', 'Phone', 'businessPhone', 'tel', 'Tel']);
+    const bEmail = getVal(businessInfo, ['email', 'Email', 'businessEmail']);
+    const bWeb = getVal(businessInfo, ['website', 'Website', 'websiteURL', 'URL', 'url', 'Web', 'web']);
 
-            {/* Items Table */}
-            <View style={styles.table}>
-                <View style={styles.tableHeader} fixed>
-                    <Text style={styles.colDesc}>Description</Text>
-                    <Text style={styles.colQty}>Qty</Text>
-                    <Text style={styles.colPrice}>Unit Price</Text>
-                    <Text style={styles.colTotal}>Total</Text>
-                </View>
-
-                {/* Dynamically handle one or many items (CRM usually has one service per quote/invoice for now) */}
-                <View style={styles.tableRow} wrap={false}>
-                    <Text style={styles.colDesc}>{data.productName || 'Service Rendered'}</Text>
-                    <Text style={styles.colQty}>{data.qty || 1}</Text>
-                    <Text style={styles.colPrice}>MUR {(data.price || 0).toLocaleString()}</Text>
-                    <Text style={styles.colTotal}>MUR {(data.total || 0).toLocaleString()}</Text>
-                </View>
-            </View>
-
-            {/* Summary */}
-            <View style={styles.summarySection}>
-                <View style={styles.summaryBox}>
-                    <View style={styles.summaryRow}>
-                        <Text>Subtotal</Text>
-                        <Text>MUR {(data.total || 0).toLocaleString()}</Text>
+    return (
+        <Document>
+            <Page size="A4" style={styles.page}>
+                {/* Header Section */}
+                <View style={styles.header}>
+                    <View style={styles.businessColumn}>
+                        {/* Try using a static relative path or base64 if it fails. 
+                            React-pdf usually resolves relative paths from /public in Next.js if configured correctly.
+                            But we'll try the full origin trick again first, or fall back to /images/unideal_logo.webp */}
+                        <Image
+                            src={typeof window !== 'undefined' ? `${window.location.origin}/images/unideal_logo.webp` : '/images/unideal_logo.webp'}
+                            style={styles.logo}
+                        />
+                        <Text style={styles.businessName}>{bName || 'UNIDEALS Ltd'}</Text>
+                        <Text style={styles.businessDetail}>{bAddress}</Text>
+                        {bBRN && <Text style={styles.businessDetail}>BRN: {bBRN}</Text>}
+                        {bVAT && <Text style={styles.businessDetail}>VAT: {bVAT}</Text>}
+                        {bPhone && <Text style={styles.businessDetail}>Tel: {bPhone}</Text>}
+                        {bEmail && <Text style={styles.businessDetail}>Email: {bEmail}</Text>}
+                        {bWeb && <Text style={styles.businessDetail}>Web: {bWeb}</Text>}
                     </View>
-                    <View style={styles.summaryRow}>
-                        <Text>VAT (0%)</Text>
-                        <Text>MUR 0.00</Text>
-                    </View>
-                    <View style={[styles.summaryRow, styles.grandTotal]}>
-                        <Text>TOTAL</Text>
-                        <Text>MUR {(data.total || 0).toLocaleString()}</Text>
+
+                    <View style={styles.headerRight}>
+                        <Text style={styles.docTitle}>{type}</Text>
+                        <Text style={styles.refNumber}>Ref: {data.quoteNumber || data.invoiceNumber || data.receiptNumber || data.id}</Text>
+                        <Text style={styles.dateText}>Date: {data.date?.seconds ? new Date(data.date.seconds * 1000).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')}</Text>
                     </View>
                 </View>
-            </View>
 
-            {/* Notes */}
-            {data.notes && (
-                <View style={styles.notes}>
-                    <Text style={styles.addressTitle}>Notes & Terms</Text>
-                    <Text style={{ fontSize: 9, lineHeight: 1.5, color: '#636e72' }}>{data.notes}</Text>
+                {/* Client Section */}
+                <View style={styles.addressGrid}>
+                    <View style={styles.addressBlock}>
+                        <Text style={styles.addressTitle}>Bill To</Text>
+                        <View style={styles.clientInfo}>
+                            <Text style={{ fontWeight: 'bold', fontSize: 11, marginBottom: 4 }}>{data.clientName || 'Valued Client'}</Text>
+                            <Text>{data.clientCompany || ''}</Text>
+                            {/* Legal requirements for client details */}
+                            {data.clientAddress && <Text style={{ color: '#636e72', marginTop: 2 }}>{data.clientAddress}</Text>}
+                            {data.clientBRN && <Text style={{ color: '#636e72' }}>BRN: {data.clientBRN}</Text>}
+                            {data.clientVAT && <Text style={{ color: '#636e72' }}>VAT: {data.clientVAT}</Text>}
+                            {data.clientPhone && <Text style={{ color: '#636e72' }}>Tel: {data.clientPhone}</Text>}
+                            {data.clientEmail && <Text style={{ color: '#636e72' }}>Email: {data.clientEmail}</Text>}
+                        </View>
+                    </View>
+                    <View style={styles.addressBlock}>
+                        <Text style={styles.addressTitle}>Status</Text>
+                        <Text style={{ fontWeight: 'bold', fontSize: 10, color: '#107d92' }}>{data.status || 'Pending'}</Text>
+                    </View>
                 </View>
-            )}
 
-            {/* Footer */}
-            <View style={styles.footerContainer} fixed>
-                <Text style={styles.footerText}>Thank you for choosing {businessInfo.name}. We appreciate your business!</Text>
-                <Text style={styles.footerText}>
-                    {businessInfo.address} | BRN: {businessInfo.brn || 'XXXXXXXXX'} | {businessInfo.website}
-                </Text>
-                <Text style={styles.pageNumber} render={({ pageNumber, totalPages }: { pageNumber: number, totalPages: number | null }) => (
-                    `Page ${pageNumber}${totalPages ? ` of ${totalPages}` : ''}`
-                )} />
-            </View>
-        </Page>
-    </Document>
-);
+                {/* Items Table */}
+                <View style={styles.table}>
+                    <View style={styles.tableHeader}>
+                        <Text style={styles.colDesc}>Description</Text>
+                        <Text style={styles.colQty}>Qty</Text>
+                        <Text style={styles.colPrice}>Unit Price</Text>
+                        <Text style={styles.colTotal}>Total</Text>
+                    </View>
+
+                    <View style={styles.tableRow}>
+                        <Text style={styles.colDesc}>{data.productName || 'Service Rendered'}</Text>
+                        <Text style={styles.colQty}>{data.qty || 1}</Text>
+                        <Text style={styles.colPrice}>MUR {(data.price || 0).toLocaleString()}</Text>
+                        <Text style={styles.colTotal}>MUR {(data.total || 0).toLocaleString()}</Text>
+                    </View>
+                </View>
+
+                {/* Totals */}
+                <View style={styles.summarySection}>
+                    <View style={styles.summaryBox}>
+                        <View style={styles.summaryRow}>
+                            <Text>Subtotal</Text>
+                            <Text>MUR {(data.total || 0).toLocaleString()}</Text>
+                        </View>
+                        <View style={styles.summaryRow}>
+                            <Text>VAT (0.00%)</Text>
+                            <Text>MUR 0.00</Text>
+                        </View>
+                        <View style={[styles.summaryRow, styles.grandTotal]}>
+                            <Text>TOTAL</Text>
+                            <Text>MUR {(data.total || 0).toLocaleString()}</Text>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Footer */}
+                <View style={styles.footer} fixed>
+                    <Text style={styles.footerText}>Thank you for your business. Please contact us for any inquiries.</Text>
+                    <Text style={styles.footerText}>Generated by UniDeals CRM</Text>
+                </View>
+            </Page>
+        </Document>
+    );
+};
