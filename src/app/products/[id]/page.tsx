@@ -7,6 +7,7 @@ import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Save, Loader2, Package, Tag, Banknote, FileText, BarChart3, Clock, AlertTriangle, Layers } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import ImageUpload from '@/components/ImageUpload';
 
 export default function ProductDetailPage() {
     const { id } = useParams();
@@ -85,9 +86,11 @@ export default function ProductDetailPage() {
 
             {/* Product Context Header */}
             <div className="bg-white rounded-[40px] shadow-sm border border-gray-100 p-8 flex flex-col md:flex-row gap-8 items-center">
-                <div className="w-24 h-24 bg-amber-50 rounded-[32px] flex items-center justify-center text-amber-500">
-                    <Package size={40} />
-                </div>
+                <ImageUpload
+                    path="products-photos"
+                    currentUrl={productData.imageUrl}
+                    onUploadComplete={(url) => setProductData({ ...productData, imageUrl: url })}
+                />
                 <div className="flex-1 text-center md:text-left">
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
                         <h1 className="text-3xl font-black text-[#1a1a1a]">{productData.name}</h1>

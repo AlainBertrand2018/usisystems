@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
+import { signInAnonymously } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 
 interface UserProfile {
@@ -55,6 +56,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             businessId: docData.businessId,
                             initialized: docData.initialized || false
                         };
+
+                        // Silent Auth Bridge: Ensure Firebase Storage recognizes this session
+                        await signInAnonymously(auth);
+
                         setUser(updatedProfile);
                         localStorage.setItem('unideals_auth_profile', JSON.stringify(updatedProfile));
                     }
@@ -91,6 +96,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             businessId: docData.businessId,
             initialized: docData.initialized || false
         };
+
+        // Silent Auth Bridge: Grant identity to Firebase Storage
+        await signInAnonymously(auth);
 
         setUser(profile);
         localStorage.setItem('unideals_auth_profile', JSON.stringify(profile));

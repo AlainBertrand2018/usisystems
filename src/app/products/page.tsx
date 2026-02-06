@@ -4,13 +4,26 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DataTable from '@/components/DataTable';
 import ProductModal from '@/components/ProductModal';
-import { Plus } from 'lucide-react';
+import { Plus, Package } from 'lucide-react';
 
 export default function ProductsPage() {
     const router = useRouter();
     const [showModal, setShowModal] = useState(false);
 
     const columns = [
+        {
+            key: 'imageUrl',
+            label: 'Image',
+            format: (val: string) => val ? (
+                <div className="w-10 h-10 rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50 flex items-center justify-center">
+                    <img src={val} alt="Product" className="w-full h-full object-cover" />
+                </div>
+            ) : (
+                <div className="w-10 h-10 rounded-xl bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center text-gray-300">
+                    <Package size={16} />
+                </div>
+            )
+        },
         {
             key: 'name',
             label: 'Product Name',

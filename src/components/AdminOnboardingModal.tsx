@@ -193,7 +193,7 @@ export default function AdminOnboardingModal({ isOpen, onClose }: AdminOnboardin
                                 <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
                                     <div className="flex flex-col items-center pb-6 border-b border-gray-50">
                                         <ImageUpload
-                                            path="user_photos"
+                                            path="users-photos"
                                             currentUrl={formData.adminPhotoURL}
                                             onUploadComplete={(url) => setFormData({ ...formData, adminPhotoURL: url })}
                                             label="Admin Profile Photo"

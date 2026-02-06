@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle, Package, Tag, Plus, Trash2, Loader2, IndianRupee } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import ImageUpload from './ImageUpload';
 
 interface ProductModalProps {
     isOpen: boolean;
@@ -23,6 +24,7 @@ export default function ProductModal({ isOpen, onClose }: ProductModalProps) {
         category: '',
         price: '',
         description: '',
+        imageUrl: ''
     });
     const [addons, setAddons] = useState<Addon[]>([]);
 
@@ -55,7 +57,7 @@ export default function ProductModal({ isOpen, onClose }: ProductModalProps) {
             });
             alert('Product added successfully!');
             onClose();
-            setFormData({ name: '', category: '', price: '', description: '' });
+            setFormData({ name: '', category: '', price: '', description: '', imageUrl: '' });
             setAddons([]);
         } catch (error) {
             console.error("Error adding product:", error);
@@ -94,6 +96,15 @@ export default function ProductModal({ isOpen, onClose }: ProductModalProps) {
                     </div>
 
                     <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto no-scrollbar">
+                        <div className="flex flex-col items-center pb-4 border-b border-gray-50">
+                            <ImageUpload
+                                path="products-photos"
+                                currentUrl={formData.imageUrl}
+                                onUploadComplete={(url) => setFormData({ ...formData, imageUrl: url })}
+                                label="Product Image"
+                            />
+                        </div>
+
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-2 col-span-2 sm:col-span-1">
                                 <label className="block text-[10px] font-black text-[#6c757d] uppercase px-1">Product Name</label>

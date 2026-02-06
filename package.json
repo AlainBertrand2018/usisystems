@@ -8,9 +8,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "deploy:rules": "npx -p firebase-tools firebase deploy --only firestore:rules"
+    "deploy:rules": "npx -p firebase-tools firebase deploy --only firestore:rules",
+    "deploy:storage": "npx -p firebase-tools firebase deploy --only storage"
   },
   "dependencies": {
+    "@google-cloud/storage": "^7.19.0",
     "@react-pdf/renderer": "^4.0.0",
     "date-fns": "^4.1.0",
     "firebase": "^10.8.0",

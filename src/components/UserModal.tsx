@@ -78,7 +78,7 @@ export default function UserModal({ isOpen, onClose }: UserModalProps) {
                     <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto no-scrollbar">
                         <div className="flex flex-col items-center pb-4 border-b border-gray-50">
                             <ImageUpload
-                                path="user_photos"
+                                path="users-photos"
                                 currentUrl={formData.photoURL}
                                 onUploadComplete={(url) => setFormData({ ...formData, photoURL: url })}
                                 label="Profile Photo"

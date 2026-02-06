@@ -97,7 +97,7 @@ export default function UserDetailPage() {
                 <div className="px-10 pb-10 -mt-12 space-y-10">
                     <div className="flex flex-col md:flex-row md:items-end gap-6">
                         <ImageUpload
-                            path="user_photos"
+                            path="users-photos"
                             currentUrl={userData.photoURL}
                             onUploadComplete={(url) => setUserData({ ...userData, photoURL: url })}
                         />
