@@ -44,54 +44,79 @@ export default function DataTable({
     const [sendingId, setSendingId] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!user) return; // Wait for auth state
+        if (!user) return;
 
         setLoading(true);
         setError(null);
 
-        let q;
         const collRef = collection(db, collectionName);
         let constraints: any[] = [];
 
-        // 1. Data Isolation Logic
         if (user.role !== 'super_admin') {
-            // Admins/Users can only see data belonging to their business
             constraints.push(where('businessId', '==', user.businessId));
-
-            // 2. Extra privacy for 'users' collection
             if (collectionName === 'users') {
-                // Std Admins cannot see Super Admins
                 constraints.push(where('role', '!=', 'super_admin'));
             }
         }
 
-        // 3. Sorting Logic
-        try {
-            q = query(collRef, ...constraints, orderBy(defaultOrderBy, 'desc'));
-        } catch (e) {
-            console.warn("Falling back to unsorted query due to missing index or constraints.");
-            q = query(collRef, ...constraints);
-        }
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            let items = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-
-            // Client-side safety filter: Ensure Admins don't see themselves or others outside their biz if query fails constraints
-            if (user.role !== 'super_admin') {
-                items = items.filter((item: any) => item.businessId === user.businessId && item.role !== 'super_admin');
+        const executeQuery = (baseConstraints: any[], sortField: string | null, isFallback = false) => {
+            let finalQuery;
+            try {
+                if (sortField) {
+                    finalQuery = query(collRef, ...baseConstraints, orderBy(sortField, 'desc'));
+                } else {
+                    finalQuery = query(collRef, ...baseConstraints);
+                }
+            } catch (e) {
+                finalQuery = query(collRef, ...baseConstraints);
+                isFallback = true;
             }
 
-            setData(items);
-            setLoading(false);
-        }, (err) => {
-            console.error(`Firestore error in ${collectionName}:`, err);
-            setError(err.message);
-            setLoading(false);
-        });
+            return onSnapshot(finalQuery, (snapshot) => {
+                let items = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
 
+                // 1. Mandatory Data Isolation (Client-side fail-safe)
+                if (user.role !== 'super_admin') {
+                    items = items.filter((item: any) => item.businessId === user.businessId);
+                }
+
+                // 2. Role Privacy (Filter out super_admin in JS if query didn't do it)
+                if (user.role !== 'super_admin' && collectionName === 'users') {
+                    items = items.filter((item: any) => item.role !== 'super_admin');
+                }
+
+                // 3. Client-side Sort Fallback
+                if (isFallback || !sortField) {
+                    items.sort((a: any, b: any) => {
+                        const valA = a[defaultOrderBy]?.seconds || a[defaultOrderBy] || 0;
+                        const valB = b[defaultOrderBy]?.seconds || b[defaultOrderBy] || 0;
+                        return valB > valA ? 1 : -1;
+                    });
+                }
+
+                setData(items);
+                setLoading(false);
+            }, (err) => {
+                if (err.code === 'failed-precondition' && !isFallback) {
+                    console.warn(`[DataTable] Missing index for ${collectionName}. Using Safety Mode.`);
+
+                    // SAFETY MODE: Only keep the most critical filter (Business Isolation)
+                    // and discard everything else (role filter, sorting) to be handled by JS.
+                    const safetyConstraints = user.role !== 'super_admin' ? [where('businessId', '==', user.businessId)] : [];
+
+                    unsubscribe = executeQuery(safetyConstraints, null, true);
+                    return;
+                }
+                console.error(`Firestore error in ${collectionName}:`, err);
+                setError(err.message);
+                setLoading(false);
+            });
+        };
+
+        let unsubscribe = executeQuery(constraints, defaultOrderBy);
         return () => unsubscribe();
     }, [collectionName, defaultOrderBy, user]);
 

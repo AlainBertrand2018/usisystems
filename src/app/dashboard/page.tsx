@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { FileText, UserPlus, Package, Calendar, TrendingUp, HandCoins, Receipt, Plus, ArrowRight, Shield } from 'lucide-react';
 import DataTable from '@/components/DataTable';
 import Link from 'next/link';
@@ -22,22 +22,30 @@ export default function DashboardPage() {
     });
 
     useEffect(() => {
-        const unsubQuotes = onSnapshot(collection(db, 'quotations'), (s) => {
+        if (!user) return;
+
+        const getCollQuery = (collName: string) => {
+            const collRef = collection(db, collName);
+            if (user.role === 'super_admin') return query(collRef);
+            return query(collRef, where('businessId', '==', user.businessId));
+        };
+
+        const unsubQuotes = onSnapshot(getCollQuery('quotations'), (s) => {
             setRawStats(prev => ({ ...prev, quotes: s.docs.map(d => d.data()) }));
         });
-        const unsubClients = onSnapshot(collection(db, 'clients'), (s) => {
+        const unsubClients = onSnapshot(getCollQuery('clients'), (s) => {
             setRawStats(prev => ({ ...prev, clients: s.size }));
         });
-        const unsubProducts = onSnapshot(collection(db, 'business_products'), (s) => {
+        const unsubProducts = onSnapshot(getCollQuery('business_products'), (s) => {
             setRawStats(prev => ({ ...prev, products: s.docs.map(d => d.data()) }));
         });
-        const unsubInvoices = onSnapshot(collection(db, 'invoices'), (s) => {
+        const unsubInvoices = onSnapshot(getCollQuery('invoices'), (s) => {
             setRawStats(prev => ({ ...prev, invoices: s.docs.map(d => d.data()) }));
         });
-        const unsubReceipts = onSnapshot(collection(db, 'receipts'), (s) => {
+        const unsubReceipts = onSnapshot(getCollQuery('receipts'), (s) => {
             setRawStats(prev => ({ ...prev, receipts: s.docs.map(d => d.data()) }));
         });
-        const unsubApps = onSnapshot(collection(db, 'appointments'), (s) => {
+        const unsubApps = onSnapshot(getCollQuery('appointments'), (s) => {
             setRawStats(prev => ({ ...prev, appointments: s.size }));
         });
 
@@ -49,7 +57,7 @@ export default function DashboardPage() {
             unsubReceipts();
             unsubApps();
         };
-    }, []);
+    }, [user]);
 
     const calcStats = useMemo(() => {
         const revenue = rawStats.invoices
