@@ -4,10 +4,12 @@ import DataTable from '@/components/DataTable';
 
 export default function ReceiptsPage() {
     const columns = [
+        { key: 'clientName', label: 'Client' },
         { key: 'invoiceNumber', label: 'Invoice Ref' },
-        { key: 'amountPaid', label: 'Amount Paid', format: (val: number) => `MUR ${val?.toLocaleString()}` },
-        { key: 'paymentMethod', label: 'Method' },
-        { key: 'date', label: 'Payment Date', format: (val: any) => val?.seconds ? new Date(val.seconds * 1000).toLocaleDateString() : 'N/A' },
+        { key: 'paymentMode', label: 'Mode' },
+        { key: 'paymentValue', label: 'Value', format: (val: number) => `MUR ${val?.toLocaleString()}` },
+        { key: 'balanceDue', label: 'Balance Due', format: (val: number) => `MUR ${val?.toLocaleString()}` },
+        { key: 'date', label: 'Date', format: (val: any) => val?.seconds ? new Date(val.seconds * 1000).toLocaleDateString('en-GB') : 'N/A' },
     ];
 
     return (

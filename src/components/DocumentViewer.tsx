@@ -218,26 +218,49 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
 
                         <div className="flex justify-end pt-10">
                             <div className="w-full max-w-xs space-y-3">
-                                <div className="flex justify-between text-xs font-bold text-[#6c757d]">
-                                    <span>Subtotal</span>
-                                    <span>MUR {(data.subtotal || (data.qty * data.price) || 0).toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between text-xs font-bold text-rose-500">
-                                    <span>Discount</span>
-                                    <span>- MUR {(data.discount || 0).toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between text-xs font-bold text-[#1a1a1a] pt-2 border-t border-gray-100">
-                                    <span>Amount before VAT</span>
-                                    <span>MUR {(data.amountBeforeVAT || ((data.subtotal || (data.qty * data.price) || 0) - (data.discount || 0))).toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between text-xs font-bold text-[#6c757d]">
-                                    <span>VAT (15%)</span>
-                                    <span>MUR {(data.vatAmount || ((data.amountBeforeVAT || ((data.subtotal || (data.qty * data.price) || 0) - (data.discount || 0))) * 0.15)).toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between items-center pt-4 border-t-2 border-[#107d92]/20">
-                                    <span className="text-lg font-black">GRAND TOTAL</span>
-                                    <span className="text-3xl font-black text-[#107d92]">MUR {(data.total || 0).toLocaleString()}</span>
-                                </div>
+                                {type === 'RECEIPT' ? (
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between text-xs font-bold text-[#6c757d]">
+                                            <span>Original Total</span>
+                                            <span>MUR {(data.total || 0).toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs font-bold text-[#1a1a1a]">
+                                            <span>Payment Mode</span>
+                                            <span className="text-[#107d92]">{data.paymentMode || 'Cash'}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs font-bold text-emerald-600 pt-2 border-t border-gray-100">
+                                            <span>Amount Paid</span>
+                                            <span>MUR {(data.paymentValue || 0).toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pt-4 border-t-2 border-[#107d92]/20">
+                                            <span className="text-lg font-black text-rose-500">BALANCE DUE</span>
+                                            <span className="text-3xl font-black text-rose-500">MUR {(data.balanceDue || 0).toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between text-xs font-bold text-[#6c757d]">
+                                            <span>Subtotal</span>
+                                            <span>MUR {(data.subtotal || (data.qty * data.price) || 0).toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs font-bold text-rose-500">
+                                            <span>Discount</span>
+                                            <span>- MUR {(data.discount || 0).toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs font-bold text-[#1a1a1a] pt-2 border-t border-gray-100">
+                                            <span>Amount before VAT</span>
+                                            <span>MUR {(data.amountBeforeVAT || ((data.subtotal || (data.qty * data.price) || 0) - (data.discount || 0))).toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs font-bold text-[#6c757d]">
+                                            <span>VAT (15%)</span>
+                                            <span>MUR {(data.vatAmount || ((data.amountBeforeVAT || ((data.subtotal || (data.qty * data.price) || 0) - (data.discount || 0))) * 0.15)).toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pt-4 border-t-2 border-[#107d92]/20">
+                                            <span className="text-lg font-black">GRAND TOTAL</span>
+                                            <span className="text-3xl font-black text-[#107d92]">MUR {(data.total || 0).toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

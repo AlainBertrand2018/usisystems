@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
-import { Edit2, FileDown, AlertCircle, Copy, Eye, Search, Mail, Loader2, Banknote, FileCheck } from 'lucide-react';
+import { Edit2, FileDown, AlertCircle, Copy, Eye, Search, Mail, Loader2, Banknote, FileCheck, Landmark } from 'lucide-react';
 import PDFDownloadButton from './pdf/PDFDownloadButton';
 
 interface DataTableProps {
@@ -16,6 +16,7 @@ interface DataTableProps {
     onView?: (item: any) => void;
     onConvert?: (item: any) => void;
     onRegisterPayment?: (item: any) => void;
+    onBanked?: (item: any) => void;
     pdfType?: 'QUOTATION' | 'INVOICE' | 'RECEIPT' | 'STATEMENT';
     defaultOrderBy?: string;
 }
@@ -30,6 +31,7 @@ export default function DataTable({
     onView,
     onConvert,
     onRegisterPayment,
+    onBanked,
     pdfType,
     defaultOrderBy = 'date'
 }: DataTableProps) {
@@ -213,13 +215,23 @@ export default function DataTable({
                                             </button>
                                         )}
 
-                                        {onRegisterPayment && item.status !== 'paid' && (
+                                        {onRegisterPayment && item.status !== 'paid' && item.status !== 'unbanked' && (
                                             <button
                                                 onClick={() => onRegisterPayment(item)}
                                                 className="px-3 py-2 bg-emerald-100 text-emerald-700 rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-emerald-200 transition-all flex items-center gap-1.5"
                                                 title="Register Payment"
                                             >
                                                 <Banknote size={14} /> Register Payment
+                                            </button>
+                                        )}
+
+                                        {onBanked && (item.status === 'unbanked' || item.status === 'Unbanked') && (
+                                            <button
+                                                onClick={() => onBanked(item)}
+                                                className="px-3 py-2 bg-blue-100 text-blue-700 rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-blue-200 transition-all flex items-center gap-1.5"
+                                                title="Confirm Banking"
+                                            >
+                                                <Landmark size={14} /> Banked
                                             </button>
                                         )}
 
