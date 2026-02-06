@@ -66,35 +66,6 @@ export default function QuotationsPage() {
         }
     };
 
-    const handleConvert = async (item: any) => {
-        if (!confirm(`Convert ${item.quoteNumber} to an official Invoice?`)) return;
-
-        try {
-            const quoteRef = doc(db, 'quotations', item.id);
-            await updateDoc(quoteRef, { status: 'Won' });
-
-            await addDoc(collection(db, 'invoices'), {
-                invoiceNumber: item.quoteNumber.replace('Q-', 'INV-'),
-                clientId: item.clientId,
-                clientName: item.clientName,
-                clientCompany: item.clientCompany || 'Business Default',
-                total: item.total,
-                status: 'pending',
-                date: serverTimestamp(),
-                quoteRef: item.id,
-                productName: item.productName,
-                qty: item.qty,
-                price: item.price,
-                notes: item.notes
-            });
-
-            alert(`Success! Invoice generated.`);
-        } catch (error) {
-            console.error("Conversion error:", error);
-            alert("Process failed.");
-        }
-    };
-
     return (
         <div className="space-y-6 lg:space-y-8 pb-10">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-4">
@@ -115,7 +86,6 @@ export default function QuotationsPage() {
                 collectionName="quotations"
                 columns={columns}
                 onClone={handleClone}
-                onConvert={handleConvert}
                 onView={(item) => setViewItem(item)}
                 pdfType="QUOTATION"
             />
