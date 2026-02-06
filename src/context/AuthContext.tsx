@@ -58,7 +58,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         };
 
                         // Silent Auth Bridge: Ensure Firebase Storage recognizes this session
-                        await signInAnonymously(auth);
+                        try {
+                            await signInAnonymously(auth);
+                        } catch (e) {
+                            console.warn("Silent Storage Auth failed (Check if Anonymous Auth is enabled in Firebase Console):", e);
+                        }
 
                         setUser(updatedProfile);
                         localStorage.setItem('unideals_auth_profile', JSON.stringify(updatedProfile));
@@ -98,7 +102,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
 
         // Silent Auth Bridge: Grant identity to Firebase Storage
-        await signInAnonymously(auth);
+        try {
+            await signInAnonymously(auth);
+        } catch (e) {
+            console.warn("Silent Storage Auth failed (Check if Anonymous Auth is enabled in Firebase Console):", e);
+        }
 
         setUser(profile);
         localStorage.setItem('unideals_auth_profile', JSON.stringify(profile));
