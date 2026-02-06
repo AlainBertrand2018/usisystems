@@ -2,8 +2,10 @@
 
 import { usePathname } from 'next/navigation';
 import { Search, Bell, User } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Header() {
+    const { user } = useAuth();
     const pathname = usePathname();
     const pageTitle = pathname === '/' ? 'Home' : pathname.split('/')[1];
     const capitalizedTitle = pageTitle ? pageTitle.charAt(0).toUpperCase() + pageTitle.slice(1) : 'Overview';
@@ -25,8 +27,12 @@ export default function Header() {
                     <Bell size={18} />
                     <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
                 </button>
-                <div className="lg:hidden w-10 h-10 bg-[#107d92]/10 text-[#107d92] rounded-2xl flex items-center justify-center">
-                    <User size={18} />
+                <div className="w-10 h-10 bg-[#107d92]/10 text-[#107d92] rounded-2xl flex items-center justify-center overflow-hidden border border-[#107d92]/20">
+                    {user?.photoURL ? (
+                        <img src={user.photoURL} alt="Me" className="w-full h-full object-cover" />
+                    ) : (
+                        <User size={18} />
+                    )}
                 </div>
             </div>
         </header>

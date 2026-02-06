@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit, where } from 'firebase/firestore';
 import { Edit2, FileDown, AlertCircle, Copy, Eye, Search, Mail, Loader2, Banknote, FileCheck, Landmark } from 'lucide-react';
 import PDFDownloadButton from './pdf/PDFDownloadButton';
+import { useAuth } from '@/context/AuthContext';
 
 interface DataTableProps {
     collectionName: string;
@@ -35,6 +36,7 @@ export default function DataTable({
     pdfType,
     defaultOrderBy = 'date'
 }: DataTableProps) {
+    const { user } = useAuth();
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -42,54 +44,56 @@ export default function DataTable({
     const [sendingId, setSendingId] = useState<string | null>(null);
 
     useEffect(() => {
+        if (!user) return; // Wait for auth state
+
         setLoading(true);
         setError(null);
 
         let q;
+        const collRef = collection(db, collectionName);
+        let constraints: any[] = [];
+
+        // 1. Data Isolation Logic
+        if (user.role !== 'super_admin') {
+            // Admins/Users can only see data belonging to their business
+            constraints.push(where('businessId', '==', user.businessId));
+
+            // 2. Extra privacy for 'users' collection
+            if (collectionName === 'users') {
+                // Std Admins cannot see Super Admins
+                constraints.push(where('role', '!=', 'super_admin'));
+            }
+        }
+
+        // 3. Sorting Logic
         try {
-            // Attempt to sort by defaultOrderBy (usually 'date') descending
-            q = query(collection(db, collectionName), orderBy(defaultOrderBy, 'desc'));
+            q = query(collRef, ...constraints, orderBy(defaultOrderBy, 'desc'));
         } catch (e) {
-            q = query(collection(db, collectionName));
+            console.warn("Falling back to unsorted query due to missing index or constraints.");
+            q = query(collRef, ...constraints);
         }
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const items = snapshot.docs.map(doc => ({
+            let items = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }));
 
-            // If the query worked but results are empty and it's because of sorting non-existent field,
-            // we'll see it here. But Firestore usually just returns empty if the field is missing on ALL docs.
+            // Client-side safety filter: Ensure Admins don't see themselves or others outside their biz if query fails constraints
+            if (user.role !== 'super_admin') {
+                items = items.filter((item: any) => item.businessId === user.businessId && item.role !== 'super_admin');
+            }
+
             setData(items);
             setLoading(false);
         }, (err) => {
-            console.warn(`Firestore sort error in ${collectionName}, falling back to unsorted:`, err);
-            // Fallback for missing index or missing field index
-            const fallbackQ = query(collection(db, collectionName));
-            onSnapshot(fallbackQ, (fallbackSnapshot) => {
-                const fallbackItems = fallbackSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                // Manual sort if possible
-                fallbackItems.sort((a: any, b: any) => {
-                    const valA = a[defaultOrderBy]?.seconds || a[defaultOrderBy] || 0;
-                    const valB = b[defaultOrderBy]?.seconds || b[defaultOrderBy] || 0;
-                    if (valA > valB) return -1;
-                    if (valA < valB) return 1;
-                    return 0;
-                });
-                setData(fallbackItems);
-                setLoading(false);
-            }, (fallbackErr) => {
-                setError(fallbackErr.message);
-                setLoading(false);
-            });
+            console.error(`Firestore error in ${collectionName}:`, err);
+            setError(err.message);
+            setLoading(false);
         });
 
         return () => unsubscribe();
-    }, [collectionName, defaultOrderBy]);
+    }, [collectionName, defaultOrderBy, user]);
 
     const handleSendAction = async (item: any) => {
         if (onSend) {

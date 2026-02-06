@@ -23,7 +23,21 @@ export default function UserDetailPage() {
                 const docRef = doc(db, 'users', id as string);
                 const snap = await getDoc(docRef);
                 if (snap.exists()) {
-                    setUserData(snap.data());
+                    const data = snap.data();
+
+                    // Security Firewall: Non-SuperAdmins cannot view SuperAdmins
+                    if (data.role === 'super_admin' && currentUser?.role !== 'super_admin') {
+                        router.push('/dashboard');
+                        return;
+                    }
+
+                    // Security Firewall: Admins can only view users from their own business
+                    if (currentUser?.role === 'admin' && data.businessId !== currentUser.businessId) {
+                        router.push('/dashboard');
+                        return;
+                    }
+
+                    setUserData(data);
                 } else {
                     router.push('/users');
                 }

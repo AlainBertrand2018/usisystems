@@ -23,7 +23,15 @@ export default function ClientDetailPage() {
                 const docRef = doc(db, 'clients', id as string);
                 const snap = await getDoc(docRef);
                 if (snap.exists()) {
-                    setClientData(snap.data());
+                    const data = snap.data();
+
+                    // Security Firewall: Admins can only view clients from their own business
+                    if (currentUser?.role !== 'super_admin' && data.businessId !== currentUser?.businessId) {
+                        router.push('/dashboard');
+                        return;
+                    }
+
+                    setClientData(data);
 
                     // Fetch basic stats (invoices/quotes for this client)
                     const q = query(collection(db, 'quotes'), where('clientId', '==', id));

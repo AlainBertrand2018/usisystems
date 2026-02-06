@@ -22,7 +22,15 @@ export default function ProductDetailPage() {
                 const docRef = doc(db, 'business_products', id as string);
                 const snap = await getDoc(docRef);
                 if (snap.exists()) {
-                    setProductData(snap.data());
+                    const data = snap.data();
+
+                    // Security Firewall: Admins can only view products from their own business
+                    if (currentUser?.role !== 'super_admin' && data.businessId !== currentUser?.businessId) {
+                        router.push('/dashboard');
+                        return;
+                    }
+
+                    setProductData(data);
                 } else {
                     router.push('/products');
                 }
