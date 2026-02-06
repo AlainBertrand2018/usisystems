@@ -72,7 +72,7 @@ export default function SplashPage() {
                         <motion.div
                             initial={{ scale: 0.9, y: 20 }}
                             animate={{ scale: 1, y: 0 }}
-                            className="bg-white rounded-[40px] shadow-2xl border border-gray-100 p-10 w-full max-w-sm relative"
+                            className="bg-white rounded-[40px] shadow-2xl border border-gray-100 p-10 w-full max-w-sm relative h-[80vh] flex flex-col justify-center"
                         >
                             <button
                                 onClick={() => setShowLogin(false)}

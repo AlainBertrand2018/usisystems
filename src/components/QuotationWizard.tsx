@@ -121,7 +121,7 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="bg-white rounded-t-[40px] lg:rounded-[32px] shadow-2xl w-full max-w-2xl h-[92vh] lg:h-auto overflow-hidden flex flex-col"
+                className="bg-white rounded-t-[40px] lg:rounded-[32px] shadow-2xl w-full max-w-2xl h-[80vh] overflow-hidden flex flex-col"
             >
                 <div className="p-6 lg:p-10 flex flex-col h-full">
                     <div className="flex justify-between items-center mb-6 lg:mb-10">
