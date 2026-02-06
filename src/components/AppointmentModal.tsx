@@ -36,6 +36,8 @@ export default function AppointmentModal({ isOpen, onClose }: AppointmentModalPr
         }
     }, [isOpen]);
 
+    const [showDropdown, setShowDropdown] = useState(false);
+
     if (!isOpen) return null;
 
     const filteredClients = clients.filter(c =>
@@ -64,6 +66,7 @@ export default function AppointmentModal({ isOpen, onClose }: AppointmentModalPr
             alert('Appointment scheduled!');
             onClose();
             setFormData({ title: '', clientId: '', clientName: '', date: '', time: '', location: '', description: '' });
+            setSearchTerm('');
         } catch (error) {
             console.error("Error adding appointment:", error);
             alert('Failed to schedule.');
@@ -121,11 +124,15 @@ export default function AppointmentModal({ isOpen, onClose }: AppointmentModalPr
                                     <input
                                         type="text"
                                         value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onFocus={() => setShowDropdown(true)}
+                                        onChange={(e) => {
+                                            setSearchTerm(e.target.value);
+                                            setShowDropdown(true);
+                                        }}
                                         className="w-full bg-gray-50 border-2 border-transparent focus:border-[#107d92] focus:bg-white rounded-2xl pl-12 pr-5 py-4 outline-none font-bold text-sm transition-all shadow-sm"
                                         placeholder="Search for a client..."
                                     />
-                                    {searchTerm && (
+                                    {showDropdown && searchTerm && filteredClients.length > 0 && (
                                         <div className="absolute z-10 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 max-h-[200px] overflow-y-auto">
                                             {filteredClients.map(c => (
                                                 <button
@@ -134,6 +141,7 @@ export default function AppointmentModal({ isOpen, onClose }: AppointmentModalPr
                                                     onClick={() => {
                                                         setFormData({ ...formData, clientId: c.id, clientName: c.name });
                                                         setSearchTerm(c.name);
+                                                        setShowDropdown(false);
                                                     }}
                                                     className="w-full text-left p-4 hover:bg-gray-50 text-sm font-bold border-b border-gray-50 last:border-0"
                                                 >
