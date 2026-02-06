@@ -193,14 +193,22 @@ export const StandardPDF = ({ type, data, businessInfo }: PDFProps) => {
                     <View style={styles.summaryBox}>
                         <View style={styles.summaryRow}>
                             <Text>Subtotal</Text>
-                            <Text>MUR {(data.total || 0).toLocaleString()}</Text>
+                            <Text>MUR {(data.subtotal || data.total || 0).toLocaleString()}</Text>
                         </View>
                         <View style={styles.summaryRow}>
-                            <Text>VAT (0.00%)</Text>
-                            <Text>MUR 0.00</Text>
+                            <Text style={{ color: '#e74c3c' }}>Discount</Text>
+                            <Text style={{ color: '#e74c3c' }}>- MUR {(data.discount || 0).toLocaleString()}</Text>
+                        </View>
+                        <View style={[styles.summaryRow, { borderTop: 1, borderTopColor: '#f1f2f6', paddingTop: 4, marginTop: 4 }]}>
+                            <Text>Amount before VAT</Text>
+                            <Text>MUR {(data.amountBeforeVAT || ((data.subtotal || data.total || 0) - (data.discount || 0))).toLocaleString()}</Text>
+                        </View>
+                        <View style={styles.summaryRow}>
+                            <Text>VAT (15%)</Text>
+                            <Text>MUR {(data.vatAmount || ((data.amountBeforeVAT || ((data.subtotal || data.total || 0) - (data.discount || 0))) * 0.15)).toLocaleString()}</Text>
                         </View>
                         <View style={[styles.summaryRow, styles.grandTotal]}>
-                            <Text>TOTAL</Text>
+                            <Text>GRAND TOTAL</Text>
                             <Text>MUR {(data.total || 0).toLocaleString()}</Text>
                         </View>
                     </View>

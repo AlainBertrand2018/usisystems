@@ -112,8 +112,8 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
                                         onClick={() => handleUpdateStatus(btn.s)}
                                         disabled={isUpdating || data.status === btn.s}
                                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${data.status === btn.s
-                                                ? `${btn.bg} ${btn.color} ring-1 ring-inset ring-current`
-                                                : 'text-gray-400 hover:bg-white'
+                                            ? `${btn.bg} ${btn.color} ring-1 ring-inset ring-current`
+                                            : 'text-gray-400 hover:bg-white'
                                             }`}
                                     >
                                         <btn.icon size={14} />
@@ -183,9 +183,9 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
                             <div className="text-right">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-[#107d92] mb-3">Current Status</p>
                                 <span className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest ${data.status === 'Won' ? 'bg-emerald-100 text-emerald-700' :
-                                        data.status === 'Sent' ? 'bg-blue-100 text-blue-700' :
-                                            data.status === 'Rejected' ? 'bg-rose-100 text-rose-700' :
-                                                'bg-amber-100 text-amber-700'
+                                    data.status === 'Sent' ? 'bg-blue-100 text-blue-700' :
+                                        data.status === 'Rejected' ? 'bg-rose-100 text-rose-700' :
+                                            'bg-amber-100 text-amber-700'
                                     }`}>
                                     {data.status || 'To Send'}
                                 </span>
@@ -217,13 +217,25 @@ export default function DocumentViewer({ isOpen, onClose, type, data }: Document
                         </div>
 
                         <div className="flex justify-end pt-10">
-                            <div className="w-full max-w-xs space-y-4">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-[#6c757d] font-bold">Subtotal</span>
-                                    <span className="font-bold">MUR {(data.total || 0).toLocaleString()}</span>
+                            <div className="w-full max-w-xs space-y-3">
+                                <div className="flex justify-between text-xs font-bold text-[#6c757d]">
+                                    <span>Subtotal</span>
+                                    <span>MUR {(data.subtotal || (data.qty * data.price) || 0).toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between text-xs font-bold text-rose-500">
+                                    <span>Discount</span>
+                                    <span>- MUR {(data.discount || 0).toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between text-xs font-bold text-[#1a1a1a] pt-2 border-t border-gray-100">
+                                    <span>Amount before VAT</span>
+                                    <span>MUR {(data.amountBeforeVAT || ((data.subtotal || (data.qty * data.price) || 0) - (data.discount || 0))).toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between text-xs font-bold text-[#6c757d]">
+                                    <span>VAT (15%)</span>
+                                    <span>MUR {(data.vatAmount || ((data.amountBeforeVAT || ((data.subtotal || (data.qty * data.price) || 0) - (data.discount || 0))) * 0.15)).toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between items-center pt-4 border-t-2 border-[#107d92]/20">
-                                    <span className="text-lg font-black">Total</span>
+                                    <span className="text-lg font-black">GRAND TOTAL</span>
                                     <span className="text-3xl font-black text-[#107d92]">MUR {(data.total || 0).toLocaleString()}</span>
                                 </div>
                             </div>

@@ -22,6 +22,7 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
     const [selectedClient, setSelectedClient] = useState<any>(null);
     const [qty, setQty] = useState(1);
     const [unitPrice, setUnitPrice] = useState(0);
+    const [discount, setDiscount] = useState(0);
     const [notes, setNotes] = useState('');
 
     // Search states
@@ -54,6 +55,7 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
             setSelectedClient(clients.find(c => c.id === initialData.clientId));
             setQty(initialData.qty || 1);
             setUnitPrice(initialData.price || 0);
+            setDiscount(initialData.discount || 0);
             setNotes(initialData.notes || '');
         } else {
             setStep(1);
@@ -61,6 +63,7 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
             setSelectedClient(null);
             setQty(1);
             setUnitPrice(0);
+            setDiscount(0);
             setNotes('');
             setProductSearch('');
             setClientSearch('');
@@ -87,7 +90,10 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
         e.preventDefault();
         setLoading(true);
 
-        const total = qty * unitPrice;
+        const subtotal = qty * unitPrice;
+        const amountBeforeVAT = subtotal - discount;
+        const vatAmount = amountBeforeVAT * 0.15;
+        const grandTotal = amountBeforeVAT + vatAmount;
         const quoteId = generateQuoteID(selectedClient.name, selectedClient.company);
 
         const newDoc = {
@@ -104,7 +110,11 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
             productName: selectedProduct.name,
             qty,
             price: unitPrice,
-            total,
+            subtotal,
+            discount,
+            amountBeforeVAT,
+            vatAmount,
+            total: grandTotal,
             notes,
             status: 'To Send',
             date: serverTimestamp(),
@@ -340,13 +350,13 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-3 gap-4">
                                         <div>
                                             <label className="block text-[10px] font-black uppercase tracking-widest text-[#6c757d] mb-2">Quantity</label>
                                             <input
                                                 type="number"
                                                 value={qty}
-                                                onChange={(e) => setQty(parseInt(e.target.value))}
+                                                onChange={(e) => setQty(parseInt(e.target.value) || 0)}
                                                 className="w-full bg-white border-2 border-gray-100 rounded-xl px-4 py-3 font-bold text-sm focus:border-[#107d92] outline-none"
                                             />
                                         </div>
@@ -355,7 +365,16 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
                                             <input
                                                 type="number"
                                                 value={unitPrice}
-                                                onChange={(e) => setUnitPrice(parseFloat(e.target.value))}
+                                                onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
+                                                className="w-full bg-white border-2 border-gray-100 rounded-xl px-4 py-3 font-bold text-sm focus:border-[#107d92] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black uppercase tracking-widest text-[#6c757d] mb-2">Discount (MUR)</label>
+                                            <input
+                                                type="number"
+                                                value={discount}
+                                                onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
                                                 className="w-full bg-white border-2 border-gray-100 rounded-xl px-4 py-3 font-bold text-sm focus:border-[#107d92] outline-none"
                                             />
                                         </div>
@@ -371,9 +390,27 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
                                         />
                                     </div>
 
-                                    <div className="pt-4 border-t border-gray-200/50 flex justify-between items-center">
-                                        <span className="text-sm font-black text-[#1a1a1a]">Total</span>
-                                        <span className="text-2xl font-black text-[#107d92]">MUR {(qty * unitPrice).toLocaleString()}</span>
+                                    <div className="pt-4 border-t border-gray-200/50 space-y-2">
+                                        <div className="flex justify-between items-center text-xs text-[#6c757d] font-bold">
+                                            <span>Subtotal</span>
+                                            <span>MUR {(qty * unitPrice).toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs text-rose-500 font-bold">
+                                            <span>Discount</span>
+                                            <span>- MUR {discount.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs text-[#1a1a1a] font-bold pt-2 border-t border-gray-100">
+                                            <span>Amount before VAT</span>
+                                            <span>MUR {((qty * unitPrice) - discount).toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs text-[#6c757d] font-bold">
+                                            <span>VAT (15%)</span>
+                                            <span>MUR {(((qty * unitPrice) - discount) * 0.15).toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pt-4 mt-2 border-t-2 border-[#107d92]/20">
+                                            <span className="text-sm font-black text-[#1a1a1a]">GRAND TOTAL</span>
+                                            <span className="text-2xl font-black text-[#107d92]">MUR {(((qty * unitPrice) - discount) * 1.15).toLocaleString()}</span>
+                                        </div>
                                     </div>
                                 </div>
 
