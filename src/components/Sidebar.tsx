@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -28,14 +29,14 @@ const sidebarLinks = [
     { name: 'Appointments', href: '/appointments', icon: Calendar },
 ];
 
-export default function Sidebar() {
+const Sidebar = memo(() => {
     const pathname = usePathname();
     const { user, logout } = useAuth();
 
     return (
         <nav className="w-72 bg-white border-right border-[#eef2f3] h-screen sticky top-0 hidden lg:flex flex-col p-6">
             <div className="mb-10 px-2">
-                <img src="/images/unideal_logo.webp" alt="UniDeals Logo" className="w-32" />
+                <img src="/images/unideal_logo.webp" alt="UniDeals Logo" className="w-32" loading="lazy" />
             </div>
 
             <ul className="flex-1 space-y-1">
@@ -83,4 +84,6 @@ export default function Sidebar() {
             </div>
         </nav>
     );
-}
+});
+
+export default Sidebar;

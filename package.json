@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.0.0",
+    "date-fns": "^4.1.0",
     "firebase": "^10.8.0",
     "framer-motion": "^11.0.8",
     "lucide-react": "^0.344.0",

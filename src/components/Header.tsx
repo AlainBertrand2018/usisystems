@@ -1,10 +1,15 @@
 'use client';
 
+import { memo } from 'react';
 import { usePathname } from 'next/navigation';
-import { Search, Bell, User } from 'lucide-react';
+import { Search, Bell, User, Menu } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
-export default function Header() {
+interface HeaderProps {
+    onMenuClick?: () => void;
+}
+
+const Header = memo(({ onMenuClick }: HeaderProps) => {
     const { user } = useAuth();
     const pathname = usePathname();
     const pageTitle = pathname === '/' ? 'Home' : pathname.split('/')[1];
@@ -12,11 +17,19 @@ export default function Header() {
 
     return (
         <header className="sticky top-0 z-40 ios-blur px-4 lg:px-10 py-4 lg:py-6 flex justify-between items-center bg-white/70 backdrop-blur-md border-b border-gray-100/50">
-            <div className="flex flex-col">
-                <h1 className="text-xl lg:text-3xl font-black text-[#1a1a1a] leading-tight">{capitalizedTitle}</h1>
-                <p className="hidden lg:block text-[#6c757d] text-xs mt-0.5 font-medium tracking-wide">
-                    {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-                </p>
+            <div className="flex items-center gap-3">
+                <button
+                    onClick={onMenuClick}
+                    className="lg:hidden w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-[#1a1a1a] active:scale-95 transition-all"
+                >
+                    <Menu size={20} />
+                </button>
+                <div className="flex flex-col">
+                    <h1 className="text-xl lg:text-3xl font-black text-[#1a1a1a] leading-tight">{capitalizedTitle}</h1>
+                    <p className="hidden lg:block text-[#6c757d] text-xs mt-0.5 font-medium tracking-wide">
+                        {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                    </p>
+                </div>
             </div>
 
             <div className="flex items-center gap-2 lg:gap-3">
@@ -29,7 +42,7 @@ export default function Header() {
                 </button>
                 <div className="w-10 h-10 bg-[#107d92]/10 text-[#107d92] rounded-2xl flex items-center justify-center overflow-hidden border border-[#107d92]/20">
                     {user?.photoURL ? (
-                        <img src={user.photoURL} alt="Me" className="w-full h-full object-cover" />
+                        <img src={user.photoURL} alt="Me" className="w-full h-full object-cover" loading="lazy" />
                     ) : (
                         <User size={18} />
                     )}
@@ -37,4 +50,6 @@ export default function Header() {
             </div>
         </header>
     );
-}
+});
+
+export default Header;

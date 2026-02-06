@@ -4,16 +4,18 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle, Calendar, MapPin, Search, Loader2, User } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 
 interface AppointmentModalProps {
     isOpen: boolean;
     onClose: () => void;
     preselectedClient?: any;
     onSuccess?: (appointment: any) => void;
+    initialDate?: Date | null;
+    initialData?: any;
 }
 
-export default function AppointmentModal({ isOpen, onClose, preselectedClient, onSuccess }: AppointmentModalProps) {
+export default function AppointmentModal({ isOpen, onClose, preselectedClient, onSuccess, initialDate, initialData }: AppointmentModalProps) {
     const [loading, setLoading] = useState(false);
     const [clients, setClients] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -26,6 +28,51 @@ export default function AppointmentModal({ isOpen, onClose, preselectedClient, o
         location: '',
         description: ''
     });
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        if (initialData) {
+            // Edit Mode
+            const d = initialData.date instanceof Date ? initialData.date : new Date(initialData.date.seconds * 1000);
+            setFormData({
+                title: initialData.title || '',
+                clientId: initialData.clientId || '',
+                clientName: initialData.clientName || '',
+                date: d.toISOString().split('T')[0],
+                time: d.toTimeString().split(' ')[0].substring(0, 5),
+                location: initialData.location || '',
+                description: initialData.description || ''
+            });
+            setSearchTerm(initialData.clientName || '');
+        } else if (initialDate) {
+            // New Mode with date
+            const dateStr = initialDate.toISOString().split('T')[0];
+            const timeStr = initialDate.toTimeString().split(' ')[0].substring(0, 5);
+            setFormData({
+                title: '',
+                clientId: preselectedClient?.id || '',
+                clientName: preselectedClient?.name || '',
+                date: dateStr,
+                time: timeStr,
+                location: '',
+                description: ''
+            });
+            setSearchTerm(preselectedClient?.name || '');
+        } else {
+            // Pure New Mode
+            setFormData({
+                title: '',
+                clientId: preselectedClient?.id || '',
+                clientName: preselectedClient?.name || '',
+                date: '',
+                time: '',
+                location: '',
+                description: ''
+            });
+            setSearchTerm(preselectedClient?.name || '');
+        }
+    }, [isOpen, initialData, initialDate, preselectedClient]);
 
     useEffect(() => {
         if (isOpen) {
@@ -73,36 +120,47 @@ export default function AppointmentModal({ isOpen, onClose, preselectedClient, o
                 date: schedDate,
                 location: formData.location,
                 description: formData.description,
-                createdAt: serverTimestamp()
+                updatedAt: serverTimestamp()
             };
-            const docRef = await addDoc(collection(db, 'appointments'), apptData);
 
-            // Send Email on the fly
-            const targetClient = preselectedClient || clients.find(c => c.id === formData.clientId);
-            if (targetClient?.email) {
-                try {
-                    await fetch('/api/send-document', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            documentId: docRef.id,
-                            collectionName: 'appointments',
-                            type: 'APPOINTMENT',
-                            clientEmail: targetClient.email
-                        })
-                    });
-                } catch (err) {
-                    console.error("Failed to send appointment email:", err);
+            let docId = initialData?.id;
+
+            if (docId) {
+                await updateDoc(doc(db, 'appointments', docId), apptData);
+            } else {
+                const docRef = await addDoc(collection(db, 'appointments'), {
+                    ...apptData,
+                    createdAt: serverTimestamp()
+                });
+                docId = docRef.id;
+            }
+
+            // Send Email on the fly (only for new or if you want to notify on update)
+            if (!initialData) {
+                const targetClient = preselectedClient || clients.find(c => c.id === formData.clientId);
+                if (targetClient?.email) {
+                    try {
+                        await fetch('/api/send-document', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                documentId: docId,
+                                collectionName: 'appointments',
+                                type: 'APPOINTMENT',
+                                clientEmail: targetClient.email
+                            })
+                        });
+                    } catch (err) {
+                        console.error("Failed to send appointment email:", err);
+                    }
                 }
             }
 
-            if (onSuccess) onSuccess({ id: docRef.id, ...apptData });
-            alert('Appointment scheduled and confirmation sent!');
+            if (onSuccess) onSuccess({ id: docId, ...apptData });
+            alert(initialData ? 'Appointment updated!' : 'Appointment scheduled and confirmation sent!');
             onClose();
-            setFormData({ title: '', clientId: '', clientName: '', date: '', time: '', location: '', description: '' });
-            setSearchTerm('');
         } catch (error) {
-            console.error("Error adding appointment:", error);
-            alert('Failed to schedule.');
+            console.error("Error saving appointment:", error);
+            alert('Failed to save.');
         } finally {
             setLoading(false);
         }

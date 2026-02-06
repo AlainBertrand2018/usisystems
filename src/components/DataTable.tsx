@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, orderBy, limit, where, doc, deleteDoc } from 'firebase/firestore';
 import { Edit2, FileDown, AlertCircle, Copy, Eye, Search, Mail, Loader2, Banknote, FileCheck, Landmark, Trash2 } from 'lucide-react';
@@ -94,12 +94,12 @@ export default function DataTable({
             let finalQuery;
             try {
                 if (sortField) {
-                    finalQuery = query(collRef, ...baseConstraints, orderBy(sortField, 'desc'));
+                    finalQuery = query(collRef, ...baseConstraints, orderBy(sortField, 'desc'), limit(100));
                 } else {
-                    finalQuery = query(collRef, ...baseConstraints);
+                    finalQuery = query(collRef, ...baseConstraints, limit(100));
                 }
             } catch (e) {
-                finalQuery = query(collRef, ...baseConstraints);
+                finalQuery = query(collRef, ...baseConstraints, limit(100));
                 isFallback = true;
             }
 
@@ -192,33 +192,35 @@ export default function DataTable({
         }
     };
 
-    const filteredData = data.filter((item) => {
-        const searchStr = searchTerm.toLowerCase();
-        if (!searchStr) return true;
+    const filteredData = useMemo(() => {
+        return data.filter((item) => {
+            const searchStr = searchTerm.toLowerCase();
+            if (!searchStr) return true;
 
-        // Search in columns
-        const inColumns = columns.some((col) => {
-            const val = item[col.key];
-            if (val === null || val === undefined) return false;
-            return String(val).toLowerCase().includes(searchStr);
+            // Search in columns
+            const inColumns = columns.some((col) => {
+                const val = item[col.key];
+                if (val === null || val === undefined) return false;
+                return String(val).toLowerCase().includes(searchStr);
+            });
+
+            if (inColumns) return true;
+
+            // Global search fields (common identifiers)
+            const globalFields = [
+                item.clientName,
+                item.clientCompany,
+                item.company,
+                item.name,
+                item.quoteNumber,
+                item.invoiceNumber,
+                item.receiptNumber,
+                item.id
+            ];
+
+            return globalFields.some(field => field && String(field).toLowerCase().includes(searchStr));
         });
-
-        if (inColumns) return true;
-
-        // Global search fields (common identifiers)
-        const globalFields = [
-            item.clientName,
-            item.clientCompany,
-            item.company,
-            item.name,
-            item.quoteNumber,
-            item.invoiceNumber,
-            item.receiptNumber,
-            item.id
-        ];
-
-        return globalFields.some(field => field && String(field).toLowerCase().includes(searchStr));
-    });
+    }, [data, searchTerm, columns]);
 
     if (loading) {
         return (
