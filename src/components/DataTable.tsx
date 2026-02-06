@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
-import { Edit2, FileDown, AlertCircle, Copy, Eye, Search, Mail, Loader2 } from 'lucide-react';
+import { Edit2, FileDown, AlertCircle, Copy, Eye, Search, Mail, Loader2, Banknote, FileCheck } from 'lucide-react';
 import PDFDownloadButton from './pdf/PDFDownloadButton';
 
 interface DataTableProps {
@@ -14,6 +14,8 @@ interface DataTableProps {
     onDownload?: (item: any) => void;
     onSend?: (item: any) => void;
     onView?: (item: any) => void;
+    onConvert?: (item: any) => void;
+    onRegisterPayment?: (item: any) => void;
     pdfType?: 'QUOTATION' | 'INVOICE' | 'RECEIPT' | 'STATEMENT';
     defaultOrderBy?: string;
 }
@@ -26,6 +28,8 @@ export default function DataTable({
     onDownload,
     onSend,
     onView,
+    onConvert,
+    onRegisterPayment,
     pdfType,
     defaultOrderBy = 'date'
 }: DataTableProps) {
@@ -206,6 +210,26 @@ export default function DataTable({
                                         {onView && (
                                             <button onClick={() => onView(item)} className="p-2 bg-gray-100 rounded-xl text-[#6c757d] hover:text-[#107d92] hover:bg-[#107d92]/10 transition-all font-bold" title="View Full Details">
                                                 <Eye size={16} />
+                                            </button>
+                                        )}
+
+                                        {onRegisterPayment && item.status !== 'paid' && (
+                                            <button
+                                                onClick={() => onRegisterPayment(item)}
+                                                className="px-3 py-2 bg-emerald-100 text-emerald-700 rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-emerald-200 transition-all flex items-center gap-1.5"
+                                                title="Register Payment"
+                                            >
+                                                <Banknote size={14} /> Register Payment
+                                            </button>
+                                        )}
+
+                                        {onConvert && (
+                                            <button
+                                                onClick={() => onConvert(item)}
+                                                className="px-3 py-2 bg-amber-100 text-amber-700 rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-amber-200 transition-all flex items-center gap-1.5"
+                                                title="Convert"
+                                            >
+                                                <FileCheck size={14} /> Convert
                                             </button>
                                         )}
 

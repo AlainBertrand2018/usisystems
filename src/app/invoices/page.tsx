@@ -26,6 +26,45 @@ export default function InvoicesPage() {
         },
     ];
 
+    const handleRegisterPayment = async (item: any) => {
+        if (item.status === 'paid') {
+            alert("This invoice is already marked as paid.");
+            return;
+        }
+
+        if (!confirm(`Register payment for ${item.invoiceNumber}? This will generate a Receipt.`)) return;
+
+        try {
+            // 1. Update Invoice Status
+            const invRef = doc(db, 'invoices', item.id);
+            await updateDoc(invRef, { status: 'paid' });
+
+            // 2. Generate Receipt
+            const receiptNumber = item.invoiceNumber.replace('INV-', 'RCP-');
+            await addDoc(collection(db, 'receipts'), {
+                receiptNumber,
+                invoiceNumber: item.invoiceNumber,
+                invoiceId: item.id,
+                clientId: item.clientId,
+                clientName: item.clientName,
+                clientCompany: item.clientCompany || 'Business Default',
+                total: item.total,
+                subtotal: item.subtotal || item.total,
+                discount: item.discount || 0,
+                amountBeforeVAT: item.amountBeforeVAT || item.total,
+                vatAmount: item.vatAmount || 0,
+                productName: item.productName || 'Payment for Invoice',
+                date: serverTimestamp(),
+                status: 'Closed'
+            });
+
+            alert(`Payment registered. Receipt ${receiptNumber} generated.`);
+        } catch (error) {
+            console.error("Payment error:", error);
+            alert("Failed to register payment.");
+        }
+    };
+
     return (
         <div className="space-y-6 lg:space-y-8 pb-10">
             <div className="px-4">
@@ -37,6 +76,7 @@ export default function InvoicesPage() {
                 collectionName="invoices"
                 columns={columns}
                 onView={(item) => setViewItem(item)}
+                onRegisterPayment={handleRegisterPayment}
                 pdfType="INVOICE"
             />
 
