@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
-import { X, ArrowRight, ArrowLeft, Check, Eye, Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { X, ArrowRight, ArrowLeft, Check, Eye, Loader2, Search, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface QuotationWizardProps {
     isOpen: boolean;
@@ -23,6 +23,15 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
     const [qty, setQty] = useState(1);
     const [unitPrice, setUnitPrice] = useState(0);
     const [notes, setNotes] = useState('');
+
+    // Search states
+    const [productSearch, setProductSearch] = useState('');
+    const [clientSearch, setClientSearch] = useState('');
+    const [showProductDropdown, setShowProductDropdown] = useState(false);
+    const [showClientDropdown, setShowClientDropdown] = useState(false);
+
+    const productInputRef = useRef<HTMLInputElement>(null);
+    const clientInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const unsubProducts = onSnapshot(collection(db, 'business_products'), (s) => {
@@ -53,6 +62,8 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
             setQty(1);
             setUnitPrice(0);
             setNotes('');
+            setProductSearch('');
+            setClientSearch('');
         }
     }, [initialData, products, clients]);
 
@@ -68,9 +79,7 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
         const year = now.getFullYear().toString().substring(2);
         const month = (now.getMonth() + 1).toString().padStart(2, '0');
         const day = now.getDate().toString().padStart(2, '0');
-        // Unique suffix using time decimals to avoid collisions
         const timeSuffix = (now.getHours() * 60 + now.getMinutes()).toString().padStart(4, '0');
-
         return `Q-${cN}${cB}-${day}${month}${year}-${timeSuffix}`;
     };
 
@@ -97,7 +106,7 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
             price: unitPrice,
             total,
             notes,
-            status: 'To Send', // Default status as requested
+            status: 'To Send',
             date: serverTimestamp(),
         };
 
@@ -111,6 +120,16 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
             setLoading(false);
         }
     };
+
+    const filteredProducts = products.filter(p =>
+        p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+        (p.category && p.category.toLowerCase().includes(productSearch.toLowerCase()))
+    );
+
+    const filteredClients = clients.filter(c =>
+        c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+        (c.company && c.company.toLowerCase().includes(clientSearch.toLowerCase()))
+    );
 
     if (!isOpen) return null;
 
@@ -152,72 +171,163 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
                     <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto no-scrollbar pb-10">
                         {step === 1 && (
                             <div className="space-y-4 lg:space-y-6">
-                                <div>
+                                <div className="relative">
                                     <label className="block text-[10px] font-black text-[#6c757d] uppercase tracking-[0.2em] mb-4">Select Product / Service</label>
-                                    <div className="grid grid-cols-1 gap-3 lg:gap-4 scroll-smooth">
-                                        {products.map((p) => (
-                                            <button
-                                                key={p.id}
-                                                type="button"
-                                                onClick={() => {
-                                                    setSelectedProduct(p);
-                                                    setUnitPrice(p.price);
-                                                    setStep(2);
-                                                }}
-                                                className={`p-5 lg:p-6 rounded-2xl border-2 text-left transition-all active:scale-95 ${selectedProduct?.id === p.id
-                                                    ? 'border-[#107d92] bg-[#107d92]/5 ring-4 ring-[#107d92]/10'
-                                                    : 'border-gray-50 hover:border-gray-200 bg-gray-50/30'}`}
-                                            >
-                                                <div className="flex justify-between items-center">
-                                                    <div>
-                                                        <h4 className="font-bold text-[#1a1a1a]">{p.name}</h4>
-                                                        <p className="text-xs text-[#6c757d] mt-1">{p.category || 'General Service'}</p>
-                                                    </div>
-                                                    <span className="text-base font-black text-[#107d92]">MUR {p.price?.toLocaleString()}</span>
-                                                </div>
-                                            </button>
-                                        ))}
+
+                                    {/* Searchable Dropdown Trigger */}
+                                    <div className="relative group">
+                                        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#107d92] transition-colors">
+                                            <Search size={18} />
+                                        </div>
+                                        <input
+                                            ref={productInputRef}
+                                            type="text"
+                                            placeholder="Search products (e.g. Design, Audit...)"
+                                            value={productSearch}
+                                            onChange={(e) => {
+                                                setProductSearch(e.target.value);
+                                                setShowProductDropdown(true);
+                                            }}
+                                            onFocus={() => setShowProductDropdown(true)}
+                                            className="w-full bg-gray-50 border-2 border-transparent focus:border-[#107d92] focus:bg-white rounded-2xl pl-14 pr-12 py-5 outline-none transition-all font-bold text-[#1a1a1a] shadow-sm hover:shadow-md"
+                                        />
+                                        <div className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300">
+                                            <ChevronDown size={20} />
+                                        </div>
+
+                                        {/* Dropdown Content */}
+                                        <AnimatePresence>
+                                            {showProductDropdown && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: 10 }}
+                                                    className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 max-h-[300px] overflow-y-auto no-scrollbar py-2"
+                                                >
+                                                    {filteredProducts.length > 0 ? (
+                                                        filteredProducts.map((p) => (
+                                                            <button
+                                                                key={p.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSelectedProduct(p);
+                                                                    setUnitPrice(p.price);
+                                                                    setProductSearch(p.name);
+                                                                    setShowProductDropdown(false);
+                                                                    setStep(2);
+                                                                }}
+                                                                className="w-full px-6 py-4 text-left hover:bg-gray-50 flex justify-between items-center transition-colors group/item"
+                                                            >
+                                                                <div>
+                                                                    <p className="font-bold text-[#1a1a1a] group-hover/item:text-[#107d92]">{p.name}</p>
+                                                                    <p className="text-xs text-[#6c757d] mt-1">{p.category || 'Service'}</p>
+                                                                </div>
+                                                                <span className="font-black text-[#107d92] bg-[#107d92]/5 px-3 py-1 rounded-lg text-xs">MUR {p.price?.toLocaleString()}</span>
+                                                            </button>
+                                                        ))
+                                                    ) : (
+                                                        <div className="px-6 py-10 text-center">
+                                                            <p className="text-sm text-[#6c757d] italic">No products found matching "{productSearch}"</p>
+                                                        </div>
+                                                    )}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
+
+                                    {/* Overlay to close dropdown when clicking outside */}
+                                    {showProductDropdown && (
+                                        <div
+                                            className="fixed inset-0 z-40"
+                                            onClick={() => setShowProductDropdown(false)}
+                                        ></div>
+                                    )}
                                 </div>
                             </div>
                         )}
 
                         {step === 2 && (
                             <div className="space-y-4 lg:space-y-6">
-                                <div>
+                                <div className="relative">
                                     <label className="block text-[10px] font-black text-[#6c757d] uppercase tracking-[0.2em] mb-4">Select Client</label>
-                                    <div className="flex flex-col gap-3 lg:gap-4 w-full">
-                                        {clients.map((c) => (
-                                            <button
-                                                key={c.id}
-                                                type="button"
-                                                onClick={() => {
-                                                    setSelectedClient(c);
-                                                    setStep(3);
-                                                }}
-                                                className={`p-5 lg:p-6 rounded-2xl border-2 text-left transition-all active:scale-95 ${selectedClient?.id === c.id
-                                                    ? 'border-[#107d92] bg-[#107d92]/5 ring-4 ring-[#107d92]/10'
-                                                    : 'border-gray-50 hover:border-gray-200 bg-gray-50/30'}`}
-                                            >
-                                                <div className="flex justify-between items-center">
-                                                    <div>
-                                                        <h4 className="font-bold text-[#1a1a1a]">{c.name}</h4>
-                                                        <p className="text-xs text-[#6c757d] mt-1">{c.company || 'Private Client'}</p>
-                                                    </div>
-                                                    <ArrowRight size={18} className="text-gray-300" />
-                                                </div>
-                                            </button>
-                                        ))}
+
+                                    {/* Searchable Dropdown Trigger */}
+                                    <div className="relative group">
+                                        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#107d92] transition-colors">
+                                            <Search size={18} />
+                                        </div>
+                                        <input
+                                            ref={clientInputRef}
+                                            type="text"
+                                            placeholder="Search clients (e.g. name or company)"
+                                            value={clientSearch}
+                                            onChange={(e) => {
+                                                setClientSearch(e.target.value);
+                                                setShowClientDropdown(true);
+                                            }}
+                                            onFocus={() => setShowClientDropdown(true)}
+                                            className="w-full bg-gray-50 border-2 border-transparent focus:border-[#107d92] focus:bg-white rounded-2xl pl-14 pr-12 py-5 outline-none transition-all font-bold text-[#1a1a1a] shadow-sm hover:shadow-md"
+                                        />
+                                        <div className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300">
+                                            <ChevronDown size={20} />
+                                        </div>
+
+                                        {/* Dropdown Content */}
+                                        <AnimatePresence>
+                                            {showClientDropdown && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: 10 }}
+                                                    className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 max-h-[300px] overflow-y-auto no-scrollbar py-2"
+                                                >
+                                                    {filteredClients.length > 0 ? (
+                                                        filteredClients.map((c) => (
+                                                            <button
+                                                                key={c.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSelectedClient(c);
+                                                                    setClientSearch(c.name);
+                                                                    setShowClientDropdown(false);
+                                                                    setStep(3);
+                                                                }}
+                                                                className="w-full px-6 py-4 text-left hover:bg-gray-50 flex justify-between items-center transition-colors group/item"
+                                                            >
+                                                                <div>
+                                                                    <p className="font-bold text-[#1a1a1a] group-hover/item:text-[#107d92]">{c.name}</p>
+                                                                    <p className="text-xs text-[#6c757d] mt-1">{c.company || 'Private Client'}</p>
+                                                                </div>
+                                                                <ArrowRight size={16} className="text-gray-300 group-hover/item:text-[#107d92] group-hover/item:translate-x-1 transition-all" />
+                                                            </button>
+                                                        ))
+                                                    ) : (
+                                                        <div className="px-6 py-10 text-center">
+                                                            <p className="text-sm text-[#6c757d] italic">No clients found matching "{clientSearch}"</p>
+                                                        </div>
+                                                    )}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
+
+                                    {/* Overlay to close dropdown when clicking outside */}
+                                    {showClientDropdown && (
+                                        <div
+                                            className="fixed inset-0 z-40"
+                                            onClick={() => setShowClientDropdown(false)}
+                                        ></div>
+                                    )}
                                 </div>
-                                <button type="button" onClick={() => setStep(1)} className="flex items-center gap-2 text-[#6c757d] font-bold text-sm lg:text-base">
+
+                                <button type="button" onClick={() => setStep(1)} className="flex items-center gap-2 text-[#6c757d] font-bold text-sm lg:text-base mt-2">
                                     <ArrowLeft size={16} /> Back
                                 </button>
                             </div>
                         )}
 
                         {step === 3 && (
-                            <div className="space-y-6 lg:space-y-8">
+                            <div className="space-y-6 lg:space-y-8 animate-in fade-in duration-500">
                                 <div className="bg-gray-50 rounded-3xl p-6 lg:p-8 space-y-4 lg:space-y-6">
                                     <div className="flex justify-between gap-4 pb-4 border-b border-gray-200/50">
                                         <div className="flex-1">
