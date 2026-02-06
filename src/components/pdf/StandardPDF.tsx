@@ -12,34 +12,20 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: 30,
         borderBottom: 1,
         borderBottomColor: '#f1f2f6',
         paddingBottom: 20,
     },
-    businessColumn: {
-        flexDirection: 'column',
-    },
     logo: {
-        width: 140,
-        marginBottom: 10,
-    },
-    businessName: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-        marginBottom: 4,
-    },
-    businessDetail: {
-        fontSize: 8,
-        color: '#636e72',
-        marginBottom: 2,
+        width: 280, // Increased width for header-style image
     },
     headerRight: {
         textAlign: 'right',
     },
     docTitle: {
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: 'bold',
         color: '#107d92',
         textTransform: 'uppercase',
@@ -144,42 +130,17 @@ interface PDFProps {
 }
 
 export const StandardPDF = ({ type, data, businessInfo }: PDFProps) => {
-    // Helper to get field value regardless of case
-    const getVal = (obj: any, keys: string[]) => {
-        for (const key of keys) {
-            if (obj[key]) return obj[key];
-        }
-        return '';
-    };
-
-    const bName = getVal(businessInfo, ['name', 'Name', 'businessName']);
-    const bAddress = getVal(businessInfo, ['address', 'Address', 'businessAddress']);
-    const bBRN = getVal(businessInfo, ['brn', 'BRN', 'businessBRN']);
-    const bVAT = getVal(businessInfo, ['vat', 'VAT', 'businessVAT']);
-    const bPhone = getVal(businessInfo, ['phone', 'Phone', 'businessPhone', 'tel', 'Tel']);
-    const bEmail = getVal(businessInfo, ['email', 'Email', 'businessEmail']);
-    const bWeb = getVal(businessInfo, ['website', 'Website', 'websiteURL', 'URL', 'url', 'Web', 'web']);
-
     return (
         <Document>
             <Page size="A4" style={styles.page}>
                 {/* Header Section */}
                 <View style={styles.header}>
-                    <View style={styles.businessColumn}>
-                        {/* Try using a static relative path or base64 if it fails. 
-                            React-pdf usually resolves relative paths from /public in Next.js if configured correctly.
-                            But we'll try the full origin trick again first, or fall back to /images/unideal_logo.webp */}
+                    <View>
+                        {/* Using the new header logo image */}
                         <Image
-                            src={typeof window !== 'undefined' ? `${window.location.origin}/images/unideal_logo.webp` : '/images/unideal_logo.webp'}
+                            src={typeof window !== 'undefined' ? `${window.location.origin}/images/unideal_header.png` : '/images/unideal_header.png'}
                             style={styles.logo}
                         />
-                        <Text style={styles.businessName}>{bName || 'UNIDEALS Ltd'}</Text>
-                        <Text style={styles.businessDetail}>{bAddress}</Text>
-                        {bBRN && <Text style={styles.businessDetail}>BRN: {bBRN}</Text>}
-                        {bVAT && <Text style={styles.businessDetail}>VAT: {bVAT}</Text>}
-                        {bPhone && <Text style={styles.businessDetail}>Tel: {bPhone}</Text>}
-                        {bEmail && <Text style={styles.businessDetail}>Email: {bEmail}</Text>}
-                        {bWeb && <Text style={styles.businessDetail}>Web: {bWeb}</Text>}
                     </View>
 
                     <View style={styles.headerRight}>
