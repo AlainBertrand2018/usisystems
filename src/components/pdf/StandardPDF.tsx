@@ -40,17 +40,6 @@ const styles = StyleSheet.create({
         marginTop: 2,
         color: '#636e72',
     },
-    statusBadge: {
-        marginTop: 8,
-        padding: '4 8',
-        backgroundColor: '#107d92',
-        color: 'white',
-        borderRadius: 4,
-        fontSize: 8,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-        alignSelf: 'flex-end',
-    },
     addressGrid: {
         flexDirection: 'row',
         marginTop: 20,
@@ -167,9 +156,6 @@ export const StandardPDF = ({ type, data, businessInfo }: PDFProps) => {
                         <Text style={styles.dateText}>
                             {type === 'APPOINTMENT' ? 'Meeting Log' : 'Date'}: {data.date?.seconds ? new Date(data.date.seconds * 1000).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')}
                         </Text>
-                        <View style={styles.statusBadge}>
-                            <Text>{data.status || 'Pending'}</Text>
-                        </View>
                     </View>
                 </View>
 
