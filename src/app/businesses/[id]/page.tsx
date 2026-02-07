@@ -126,8 +126,16 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                                 <span className="font-mono text-[11px] bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">{businessData.id}</span>
                             </p>
                             {businessData.url && (
-                                <a href={businessData.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm font-bold text-[#107d92] hover:underline decoration-2">
-                                    <Globe size={14} /> {new URL(businessData.url).hostname}
+                                <a href={businessData.url.startsWith('http') ? businessData.url : `https://${businessData.url}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm font-bold text-[#107d92] hover:underline decoration-2">
+                                    <Globe size={14} />
+                                    {(() => {
+                                        try {
+                                            const url = businessData.url.startsWith('http') ? businessData.url : `https://${businessData.url}`;
+                                            return new URL(url).hostname;
+                                        } catch (e) {
+                                            return businessData.url;
+                                        }
+                                    })()}
                                 </a>
                             )}
                         </div>
