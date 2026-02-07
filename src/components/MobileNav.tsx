@@ -7,12 +7,12 @@ import {
     LayoutDashboard,
     Package,
     Users,
-    FileText,
     Calendar,
-    Settings,
-    UserCircle
+    UserCircle,
+    Building2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/context/AuthContext';
 
 const navItems = [
     { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
@@ -22,13 +22,24 @@ const navItems = [
     { name: 'Schedule', href: '/appointments', icon: Calendar },
 ];
 
+const superAdminItems = [
+    { name: 'Homes', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Businesses', href: '/businesses', icon: Building2 },
+    { name: 'Staff', href: '/users', icon: UserCircle },
+    { name: 'Schedule', href: '/appointments', icon: Calendar },
+];
+
 const MobileNav = memo(() => {
     const pathname = usePathname();
+    const { user } = useAuth();
+
+    // Use specific items for Super Admin, otherwise standard
+    const items = user?.role === 'super_admin' ? superAdminItems : navItems;
 
     return (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50">
             <div className="bg-white/80 backdrop-blur-xl border-t border-gray-100 flex justify-around items-center px-2 pt-3 pb-8 safe-bottom shadow-[0_-4px_30px_rgba(0,0,0,0.05)]">
-                {navItems.map((item) => {
+                {items.map((item) => {
                     const isActive = pathname === item.href;
                     const Icon = item.icon;
 

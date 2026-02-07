@@ -8,6 +8,9 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 import { useAuth } from '@/context/AuthContext';
 import ImageUpload from './ImageUpload';
+import { validatePassword } from '@/lib/validation';
+import PasswordStrength from './PasswordStrength';
+import { Key, RefreshCw } from 'lucide-react';
 
 interface UserModalProps {
     isOpen: boolean;
@@ -21,6 +24,7 @@ export default function UserModal({ isOpen, onClose }: UserModalProps) {
         displayName: '',
         email: '',
         role: 'user' as 'super_admin' | 'admin' | 'user',
+        password: '',
         photoURL: ''
     });
 
@@ -28,17 +32,26 @@ export default function UserModal({ isOpen, onClose }: UserModalProps) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        const { isValid } = validatePassword(formData.password);
+        if (!isValid) {
+            alert('Password must be 8+ chars and contain uppercase, lowercase, digit, and symbol.');
+            return;
+        }
+
         setLoading(true);
 
         try {
             await addDoc(collection(db, 'users'), {
                 ...formData,
                 addedBy: currentUser?.email || 'system',
-                createdAt: serverTimestamp()
+                businessId: currentUser?.businessId || 'N/A',
+                createdAt: serverTimestamp(),
+                status: 'active'
             });
             alert('User account created!');
             onClose();
-            setFormData({ displayName: '', email: '', role: 'user', photoURL: '' });
+            setFormData({ displayName: '', email: '', role: 'user', password: '', photoURL: '' });
         } catch (error) {
             console.error("Error adding user:", error);
             alert('Failed to create user.');
@@ -114,6 +127,31 @@ export default function UserModal({ isOpen, onClose }: UserModalProps) {
                                         placeholder="user@unideals.crm"
                                     />
                                 </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center px-1">
+                                    <label className="block text-[10px] font-black text-[#6c757d] uppercase tracking-wider">Access Key (Password)</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, password: Math.random().toString(36).slice(-2) + Math.random().toString(36).toUpperCase().slice(-2) + "@" + (Math.floor(Math.random() * 90) + 10) + "U" })}
+                                        className="text-[10px] font-black text-[#107d92] flex items-center gap-1 hover:underline active:scale-95 transition-all"
+                                    >
+                                        <RefreshCw size={10} /> Regenerate
+                                    </button>
+                                </div>
+                                <div className="relative">
+                                    <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                    <input
+                                        type="text"
+                                        required
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                        className="w-full bg-blue-50/30 border-2 border-dashed border-blue-100 focus:border-solid focus:border-[#107d92] focus:bg-white rounded-2xl pl-12 pr-5 py-4 outline-none font-black text-sm transition-all shadow-sm tracking-widest text-[#107d92]"
+                                        placeholder="Set initial password"
+                                    />
+                                </div>
+                                <PasswordStrength password={formData.password} />
                             </div>
 
                             <div className="space-y-2">

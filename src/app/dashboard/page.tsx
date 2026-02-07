@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { FileText, UserPlus, Package, Calendar, TrendingUp, HandCoins, Receipt, Plus, ArrowRight, Shield } from 'lucide-react';
+import { FileText, UserPlus, Package, Calendar, TrendingUp, HandCoins, Receipt, Plus, ArrowRight, Shield, Building } from 'lucide-react';
 import DataTable from '@/components/DataTable';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -18,7 +18,8 @@ export default function DashboardPage() {
         products: [] as any[],
         invoices: [] as any[],
         receipts: [] as any[],
-        appointments: 0
+        appointments: 0,
+        businesses: [] as any[]
     });
 
     useEffect(() => {
@@ -49,6 +50,13 @@ export default function DashboardPage() {
             setRawStats(prev => ({ ...prev, appointments: s.size }));
         });
 
+        let unsubBiz = () => { };
+        if (user.role === 'super_admin') {
+            unsubBiz = onSnapshot(collection(db, 'businesses'), (s) => {
+                setRawStats(prev => ({ ...prev, businesses: s.docs.map(d => ({ id: d.id, ...d.data() })) }));
+            });
+        }
+
         return () => {
             unsubQuotes();
             unsubClients();
@@ -56,38 +64,91 @@ export default function DashboardPage() {
             unsubInvoices();
             unsubReceipts();
             unsubApps();
+            unsubBiz();
         };
     }, [user]);
 
     const calcStats = useMemo(() => {
-        const revenue = rawStats.invoices
+        // Safety guard for data structure
+        const businesses = Array.isArray(rawStats.businesses) ? rawStats.businesses : [];
+        const invoices = Array.isArray(rawStats.invoices) ? rawStats.invoices : [];
+        const quotes = Array.isArray(rawStats.quotes) ? rawStats.quotes : [];
+        const receipts = Array.isArray(rawStats.receipts) ? rawStats.receipts : [];
+
+        // Shared counters
+        const quoteCount = quotes.length;
+        const clientCount = typeof rawStats.clients === 'number' ? rawStats.clients : 0;
+        const productCount = Array.isArray(rawStats.products) ? rawStats.products.length : 0;
+        const appointmentCount = typeof rawStats.appointments === 'number' ? rawStats.appointments : 0;
+        const businessCount = businesses.length;
+
+        // Formula for Super Admin: SaaS Metrics
+        if (user?.role === 'super_admin') {
+            const totalSubscriptionRevenue = businesses.reduce((sum, biz) => sum + (biz.subscription?.amount || 0), 0);
+            const expectedAnnualSales = businesses.reduce((sum, biz) => {
+                const amount = biz.subscription?.amount || 0;
+                const type = biz.subscription?.type || 'Monthly';
+                if (type === 'Monthly') return sum + (amount * 12);
+                return sum + amount; // Yearly and Lifetime are already annual/one-time lump sums
+            }, 0);
+
+            return {
+                revenue: totalSubscriptionRevenue,
+                expected: expectedAnnualSales,
+                paymentsReceived: totalSubscriptionRevenue,
+                quoteCount,
+                clientCount,
+                productCount,
+                appointmentCount,
+                businessCount
+            };
+        }
+
+        // Formula for Regular Tenants: Operational Metrics
+        const revenue = invoices
             .filter(inv => inv.status === 'paid')
             .reduce((sum, inv) => sum + (inv.total || 0), 0);
 
-        const unpaidSales = rawStats.invoices
+        const unpaidSales = invoices
             .filter(inv => inv.status !== 'paid')
             .reduce((sum, inv) => sum + (inv.total || 0), 0);
 
-        const activeQuoteValue = rawStats.quotes
+        const activeQuoteValue = quotes
             .reduce((sum, q) => sum + (q.total || 0), 0);
 
-        const paymentsReceived = rawStats.receipts
+        const paymentsReceived = receipts
             .reduce((sum, r) => sum + (r.amountPaid || 0), 0);
 
         return {
             revenue,
             expected: unpaidSales + activeQuoteValue,
             paymentsReceived,
-            quoteCount: rawStats.quotes.length,
-            clientCount: rawStats.clients,
-            productCount: rawStats.products.length,
-            appointmentCount: rawStats.appointments
+            quoteCount,
+            clientCount,
+            productCount,
+            appointmentCount,
+            businessCount: 0
         };
-    }, [rawStats]);
+    }, [rawStats, user]);
 
     const stats = [
-        { label: 'Total Revenue', value: `MUR ${calcStats.revenue.toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-        { label: 'Expected Sales', value: `MUR ${calcStats.expected.toLocaleString()}`, icon: HandCoins, color: 'text-blue-600', bg: 'bg-blue-50' },
+        ...(user?.role === 'super_admin' ? [
+            { label: 'Registered Businesses', value: calcStats.businessCount.toString(), icon: Building, color: 'text-indigo-600', bg: 'bg-indigo-50' }
+        ] : []),
+        {
+            label: user?.role === 'super_admin' ? 'Total Subscription Revenue' : 'Total Revenue',
+            value: `MUR ${calcStats.revenue.toLocaleString()}`,
+            icon: TrendingUp,
+            color: 'text-emerald-600',
+            bg: 'bg-emerald-50'
+        },
+        {
+            label: user?.role === 'super_admin' ? 'Expected Annual Sales' : 'Expected Sales',
+            value: `MUR ${calcStats.expected.toLocaleString()}`,
+            icon: HandCoins,
+            color: 'text-blue-600',
+            bg: 'bg-blue-50'
+        },
         { label: 'Payments Received', value: `MUR ${calcStats.paymentsReceived.toLocaleString()}`, icon: Receipt, color: 'text-teal-600', bg: 'bg-teal-50' },
         { label: 'Active Quotations', value: calcStats.quoteCount.toString(), icon: FileText, color: 'text-amber-600', bg: 'bg-amber-50' },
         { label: 'Total Clients', value: calcStats.clientCount.toString(), icon: UserPlus, color: 'text-violet-600', bg: 'bg-violet-50' },

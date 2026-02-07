@@ -6,6 +6,7 @@ import { X, CheckCircle, Package, Tag, Plus, Trash2, Loader2, IndianRupee } from
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import ImageUpload from './ImageUpload';
+import { useAuth } from '@/context/AuthContext';
 
 interface ProductModalProps {
     isOpen: boolean;
@@ -18,6 +19,7 @@ interface Addon {
 }
 
 export default function ProductModal({ isOpen, onClose }: ProductModalProps) {
+    const { user: currentUser } = useAuth();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
@@ -53,6 +55,8 @@ export default function ProductModal({ isOpen, onClose }: ProductModalProps) {
                 ...formData,
                 price: parseFloat(formData.price),
                 addons,
+                addedBy: currentUser?.email || 'system',
+                businessId: currentUser?.businessId || 'N/A',
                 createdAt: serverTimestamp()
             });
             alert('Product added successfully!');

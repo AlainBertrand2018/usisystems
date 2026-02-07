@@ -6,8 +6,10 @@ import { collection, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/fi
 import DataTable from '@/components/DataTable';
 import DocumentViewer from '@/components/DocumentViewer';
 import PaymentModal from '@/components/PaymentModal';
+import { useAuth } from '@/context/AuthContext';
 
 export default function InvoicesPage() {
+    const { user: currentUser } = useAuth();
     const [viewItem, setViewItem] = useState<any>(null);
     const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -60,7 +62,9 @@ export default function InvoicesPage() {
             balanceDue,
             productName: invoice.productName || 'Payment for Invoice',
             date: serverTimestamp(),
-            status: 'received'
+            status: 'received',
+            businessId: invoice.businessId || 'N/A',
+            addedBy: currentUser?.email || 'system'
         });
 
         // Trigger Send PDF via API

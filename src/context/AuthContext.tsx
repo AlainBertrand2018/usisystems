@@ -13,12 +13,13 @@ interface UserProfile {
     displayName?: string;
     photoURL?: string;
     initialized?: boolean;
+    status?: 'active' | 'revoked';
 }
 
 interface AuthContextType {
     user: UserProfile | null;
     loading: boolean;
-    login: (email: string) => Promise<UserProfile>;
+    login: (email: string, password?: string) => Promise<UserProfile>;
     logout: () => void;
 }
 
@@ -40,10 +41,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     const snapshot = await getDocs(q);
 
                     if (snapshot.empty && parsed.email !== 'bertrand.chagal@gmail.com') {
-                        // User was deleted from DB, clear local session
                         logout();
                     } else if (!snapshot.empty) {
                         const docData = snapshot.docs[0].data();
+
+                        // Security Firewall: Immediate Revocation Check
+                        if (docData.status === 'revoked') {
+                            logout();
+                            return;
+                        }
+
                         const email = docData.email;
                         const role = email === 'bertrand.chagal@gmail.com' ? 'super_admin' : docData.role;
 
@@ -54,7 +61,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             displayName: docData.displayName || email.split('@')[0],
                             role: role,
                             businessId: docData.businessId,
-                            initialized: docData.initialized || false
+                            initialized: docData.initialized || false,
+                            status: docData.status || 'active'
                         };
 
                         // Silent Auth Bridge: Ensure Firebase Storage recognizes this session
@@ -80,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    const login = async (email: string) => {
+    const login = async (email: string, password?: string) => {
         const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase().trim()));
         const snap = await getDocs(q);
 
@@ -89,6 +97,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         const docData = snap.docs[0].data();
+
+        // Security Firewall: Status Check
+        if (docData.status === 'revoked') {
+            throw new Error("ACCOUNT_REVOKED");
+        }
+
+        // Simple Implementation: Check Firestore password
+        // In the next phase we will link this to Firebase Auth completely
+        if (password && docData.password && docData.password !== password) {
+            throw new Error("INVALID_PASSWORD");
+        }
+
         const userEmail = docData.email;
         const role = userEmail === 'bertrand.chagal@gmail.com' ? 'super_admin' : docData.role;
 
@@ -98,7 +118,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             displayName: docData.displayName || userEmail.split('@')[0],
             role: role,
             businessId: docData.businessId,
-            initialized: docData.initialized || false
+            initialized: docData.initialized || false,
+            status: docData.status || 'active'
         };
 
         // Silent Auth Bridge: Grant identity to Firebase Storage

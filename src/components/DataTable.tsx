@@ -21,6 +21,8 @@ interface DataTableProps {
     onDelete?: (item: any) => void;
     pdfType?: 'QUOTATION' | 'INVOICE' | 'RECEIPT' | 'STATEMENT';
     defaultOrderBy?: string;
+    viewMode?: 'table' | 'grid';
+    renderGrid?: (item: any) => React.ReactNode;
 }
 
 export default function DataTable({
@@ -36,7 +38,9 @@ export default function DataTable({
     onBanked,
     onDelete,
     pdfType,
-    defaultOrderBy = 'date'
+    defaultOrderBy = 'date',
+    viewMode = 'table',
+    renderGrid
 }: DataTableProps) {
     const { user } = useAuth();
     const [data, setData] = useState<any[]>([]);
@@ -252,119 +256,129 @@ export default function DataTable({
                 </div>
             </div>
 
-            <div className="overflow-x-auto no-scrollbar">
-                <table className="w-full text-left border-collapse min-w-[600px]">
-                    <thead>
-                        <tr className="border-b border-gray-100">
-                            {columns.map((col) => (
-                                <th key={col.key} className={`pb-4 px-4 text-[10px] font-black text-[#6c757d] uppercase tracking-widest whitespace-nowrap ${col.key === 'actions' ? 'text-right' : ''}`}>
-                                    {col.label}
-                                </th>
-                            ))}
-                            {!hasActionsColumn && (
-                                <th className="pb-4 px-4 text-[10px] font-black text-[#6c757d] uppercase tracking-widest text-right">Actions</th>
-                            )}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredData.map((item) => (
-                            <tr key={item.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors group">
-                                {columns.map((col, index) => (
-                                    <td key={col.key} className="py-5 px-4 text-sm font-bold text-[#1a1a1a]">
-                                        {index === 0 && onView ? (
-                                            <button
-                                                onClick={() => onView(item)}
-                                                className="text-[#107d92] hover:underline text-left font-black"
-                                            >
-                                                {col.format ? col.format(item[col.key], item) : item[col.key]}
-                                            </button>
-                                        ) : (
-                                            col.format ? col.format(item[col.key], item) : item[col.key]
-                                        )}
-                                    </td>
+            {viewMode === 'grid' && renderGrid ? (
+                <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-6 px-1 sm:px-2 pb-10">
+                    {filteredData.map((item) => (
+                        <div key={item.id}>
+                            {renderGrid(item)}
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="overflow-x-auto no-scrollbar">
+                    <table className="w-full text-left border-collapse min-w-[600px]">
+                        <thead>
+                            <tr className="border-b border-gray-100">
+                                {columns.map((col) => (
+                                    <th key={col.key} className={`pb-4 px-4 text-[10px] font-black text-[#6c757d] uppercase tracking-widest whitespace-nowrap ${col.key === 'actions' ? 'text-right' : ''}`}>
+                                        {col.label}
+                                    </th>
                                 ))}
                                 {!hasActionsColumn && (
-                                    <td className="py-5 px-4">
-                                        <div className="flex justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                                            {onView && (
-                                                <button onClick={() => onView(item)} className="p-2 bg-gray-100 rounded-xl text-[#6c757d] hover:text-[#107d92] hover:bg-[#107d92]/10 transition-all font-bold" title="View Full Details">
-                                                    <Eye size={16} />
-                                                </button>
-                                            )}
-
-                                            {onRegisterPayment && item.status !== 'paid' && item.status !== 'unbanked' && (
-                                                <button
-                                                    onClick={() => onRegisterPayment(item)}
-                                                    className="px-3 py-2 bg-emerald-100 text-emerald-700 rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-emerald-200 transition-all flex items-center gap-1.5"
-                                                    title="Register Payment"
-                                                >
-                                                    <Banknote size={14} /> Register Payment
-                                                </button>
-                                            )}
-
-                                            {onBanked && (item.status === 'unbanked' || item.status === 'Unbanked') && (
-                                                <button
-                                                    onClick={() => onBanked(item)}
-                                                    className="px-3 py-2 bg-blue-100 text-blue-700 rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-blue-200 transition-all flex items-center gap-1.5"
-                                                    title="Confirm Banking"
-                                                >
-                                                    <Landmark size={14} /> Banked
-                                                </button>
-                                            )}
-
-                                            {onConvert && (
-                                                <button
-                                                    onClick={() => onConvert(item)}
-                                                    className="px-3 py-2 bg-amber-100 text-amber-700 rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-amber-200 transition-all flex items-center gap-1.5"
-                                                    title="Convert"
-                                                >
-                                                    <FileCheck size={14} /> Convert
-                                                </button>
-                                            )}
-
-                                            <button
-                                                onClick={() => handleSendAction(item)}
-                                                disabled={sendingId === item.id}
-                                                className="p-2 bg-blue-50 rounded-xl text-blue-600 hover:bg-blue-100 transition-all flex items-center justify-center min-w-[36px]"
-                                                title="Send via Email"
-                                            >
-                                                {sendingId === item.id ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
-                                            </button>
-
-                                            {onEdit && (
-                                                <button onClick={() => onEdit(item)} className="p-2 bg-gray-100 rounded-xl text-[#6c757d] hover:text-[#107d92] hover:bg-[#107d92]/10 transition-all" title="Edit Record">
-                                                    <Edit2 size={16} />
-                                                </button>
-                                            )}
-                                            {onClone && (
-                                                <button onClick={() => onClone(item)} className="p-2 bg-gray-100 rounded-xl text-[#6c757d] hover:text-[#107d92] hover:bg-[#107d92]/10 transition-all" title="Clone Duplicate">
-                                                    <Copy size={16} />
-                                                </button>
-                                            )}
-                                            {pdfType ? (
-                                                <PDFDownloadButton type={pdfType} data={item} showLabel={false} />
-                                            ) : onDownload && (
-                                                <button onClick={() => onDownload(item)} className="p-2 bg-gray-100 rounded-xl text-[#6c757d] hover:text-[#107d92] hover:bg-[#107d92]/10 transition-all" title="Download PDF">
-                                                    <FileDown size={16} />
-                                                </button>
-                                            )}
-
-                                            <button
-                                                onClick={() => handleDeleteInternal(item)}
-                                                disabled={deletingId === item.id}
-                                                className="p-2 bg-rose-50 rounded-xl text-rose-500 hover:bg-rose-500 hover:text-white transition-all disabled:opacity-50"
-                                                title="Delete Permanently"
-                                            >
-                                                {deletingId === item.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                                            </button>
-                                        </div>
-                                    </td>
+                                    <th className="pb-4 px-4 text-[10px] font-black text-[#6c757d] uppercase tracking-widest text-right">Actions</th>
                                 )}
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            {filteredData.map((item) => (
+                                <tr key={item.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors group">
+                                    {columns.map((col, index) => (
+                                        <td key={col.key} className="py-5 px-4 text-sm font-bold text-[#1a1a1a]">
+                                            {index === 0 && onView ? (
+                                                <button
+                                                    onClick={() => onView(item)}
+                                                    className="text-[#107d92] hover:underline text-left font-black"
+                                                >
+                                                    {col.format ? col.format(item[col.key], item) : item[col.key]}
+                                                </button>
+                                            ) : (
+                                                col.format ? col.format(item[col.key], item) : item[col.key]
+                                            )}
+                                        </td>
+                                    ))}
+                                    {!hasActionsColumn && (
+                                        <td className="py-5 px-4">
+                                            <div className="flex justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                                                {onView && (
+                                                    <button onClick={() => onView(item)} className="p-2 bg-gray-100 rounded-xl text-[#6c757d] hover:text-[#107d92] hover:bg-[#107d92]/10 transition-all font-bold" title="View Full Details">
+                                                        <Eye size={16} />
+                                                    </button>
+                                                )}
+
+                                                {onRegisterPayment && item.status !== 'paid' && item.status !== 'unbanked' && (
+                                                    <button
+                                                        onClick={() => onRegisterPayment(item)}
+                                                        className="px-3 py-2 bg-emerald-100 text-emerald-700 rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-emerald-200 transition-all flex items-center gap-1.5"
+                                                        title="Register Payment"
+                                                    >
+                                                        <Banknote size={14} /> Register Payment
+                                                    </button>
+                                                )}
+
+                                                {onBanked && (item.status === 'unbanked' || item.status === 'Unbanked') && (
+                                                    <button
+                                                        onClick={() => onBanked(item)}
+                                                        className="px-3 py-2 bg-blue-100 text-blue-700 rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-blue-200 transition-all flex items-center gap-1.5"
+                                                        title="Confirm Banking"
+                                                    >
+                                                        <Landmark size={14} /> Banked
+                                                    </button>
+                                                )}
+
+                                                {onConvert && (
+                                                    <button
+                                                        onClick={() => onConvert(item)}
+                                                        className="px-3 py-2 bg-amber-100 text-amber-700 rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-amber-200 transition-all flex items-center gap-1.5"
+                                                        title="Convert"
+                                                    >
+                                                        <FileCheck size={14} /> Convert
+                                                    </button>
+                                                )}
+
+                                                <button
+                                                    onClick={() => handleSendAction(item)}
+                                                    disabled={sendingId === item.id}
+                                                    className="p-2 bg-blue-50 rounded-xl text-blue-600 hover:bg-blue-100 transition-all flex items-center justify-center min-w-[36px]"
+                                                    title="Send via Email"
+                                                >
+                                                    {sendingId === item.id ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
+                                                </button>
+
+                                                {onEdit && (
+                                                    <button onClick={() => onEdit(item)} className="p-2 bg-gray-100 rounded-xl text-[#6c757d] hover:text-[#107d92] hover:bg-[#107d92]/10 transition-all" title="Edit Record">
+                                                        <Edit2 size={16} />
+                                                    </button>
+                                                )}
+                                                {onClone && (
+                                                    <button onClick={() => onClone(item)} className="p-2 bg-gray-100 rounded-xl text-[#6c757d] hover:text-[#107d92] hover:bg-[#107d92]/10 transition-all" title="Clone Duplicate">
+                                                        <Copy size={16} />
+                                                    </button>
+                                                )}
+                                                {pdfType ? (
+                                                    <PDFDownloadButton type={pdfType} data={item} showLabel={false} />
+                                                ) : onDownload && (
+                                                    <button onClick={() => onDownload(item)} className="p-2 bg-gray-100 rounded-xl text-[#6c757d] hover:text-[#107d92] hover:bg-[#107d92]/10 transition-all" title="Download PDF">
+                                                        <FileDown size={16} />
+                                                    </button>
+                                                )}
+
+                                                <button
+                                                    onClick={() => handleDeleteInternal(item)}
+                                                    disabled={deletingId === item.id}
+                                                    className="p-2 bg-rose-50 rounded-xl text-rose-500 hover:bg-rose-500 hover:text-white transition-all disabled:opacity-50"
+                                                    title="Delete Permanently"
+                                                >
+                                                    {deletingId === item.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                                                </button>
+                                            </div>
+                                        </td>
+                                    )}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
             {filteredData.length === 0 && (
                 <div className="py-20 text-center text-[#6c757d] font-bold text-sm">
                     {searchTerm ? `No records matching "${searchTerm}"` : `No records found in ${collectionName}.`}

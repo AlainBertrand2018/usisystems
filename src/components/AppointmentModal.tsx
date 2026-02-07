@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle, Calendar, MapPin, Search, Loader2, User } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, updateDoc, where } from 'firebase/firestore';
+import { useAuth } from '@/context/AuthContext';
 
 interface AppointmentModalProps {
     isOpen: boolean;
@@ -16,6 +17,7 @@ interface AppointmentModalProps {
 }
 
 export default function AppointmentModal({ isOpen, onClose, preselectedClient, onSuccess, initialDate, initialData }: AppointmentModalProps) {
+    const { user: currentUser } = useAuth();
     const [loading, setLoading] = useState(false);
     const [clients, setClients] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -85,7 +87,9 @@ export default function AppointmentModal({ isOpen, onClose, preselectedClient, o
                 setSearchTerm(preselectedClient.name);
             } else {
                 const fetchClients = async () => {
-                    const q = query(collection(db, 'clients'), orderBy('name', 'asc'));
+                    const q = currentUser?.role === 'super_admin'
+                        ? query(collection(db, 'clients'), orderBy('name', 'asc'))
+                        : query(collection(db, 'clients'), where('businessId', '==', currentUser?.businessId), orderBy('name', 'asc'));
                     const snap = await getDocs(q);
                     setClients(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
                 };
@@ -120,6 +124,8 @@ export default function AppointmentModal({ isOpen, onClose, preselectedClient, o
                 date: schedDate,
                 location: formData.location,
                 description: formData.description,
+                businessId: initialData?.businessId || currentUser?.businessId || 'N/A',
+                addedBy: initialData?.addedBy || currentUser?.email || 'system',
                 updatedAt: serverTimestamp()
             };
 

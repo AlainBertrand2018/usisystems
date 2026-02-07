@@ -42,6 +42,13 @@ export default function UsersPage() {
                 </span>
             )
         },
+        {
+            key: 'status', label: 'Access Status', format: (val: string) => (
+                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${val === 'revoked' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                    {val || 'active'}
+                </span>
+            )
+        },
         { key: 'createdAt', label: 'Created On', format: (val: any) => val?.seconds ? new Date(val.seconds * 1000).toLocaleDateString() : 'N/A' },
     ];
 

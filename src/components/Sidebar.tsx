@@ -13,7 +13,8 @@ import {
     PieChart,
     UserCog,
     Calendar,
-    LogOut
+    LogOut,
+    Building2
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -29,6 +30,10 @@ const sidebarLinks = [
     { name: 'Appointments', href: '/appointments', icon: Calendar },
 ];
 
+const superAdminLinks = [
+    { name: 'Businesses', href: '/businesses', icon: Building2 },
+];
+
 const Sidebar = memo(() => {
     const pathname = usePathname();
     const { user, logout } = useAuth();
@@ -40,26 +45,29 @@ const Sidebar = memo(() => {
             </div>
 
             <ul className="flex-1 space-y-1">
-                {sidebarLinks.map((link) => {
-                    const isActive = pathname === link.href;
-                    const Icon = link.icon;
+                {sidebarLinks
+                    .filter(link => !(user?.role === 'super_admin' && link.name === 'Clients'))
+                    .concat(user?.role === 'super_admin' ? superAdminLinks : [])
+                    .map((link) => {
+                        const isActive = pathname === link.href;
+                        const Icon = link.icon;
 
-                    return (
-                        <li key={link.name}>
-                            <Link
-                                href={link.href}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium ${isActive
-                                    ? 'bg-[#107d92]/10 color-[#107d92]'
-                                    : 'text-[#6c757d] hover:bg-[#107d92]/5 hover:text-[#107d92]'
-                                    }`}
-                                style={{ color: isActive ? '#107d92' : undefined }}
-                            >
-                                <Icon size={20} />
-                                <span>{link.name}</span>
-                            </Link>
-                        </li>
-                    );
-                })}
+                        return (
+                            <li key={link.name}>
+                                <Link
+                                    href={link.href}
+                                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium ${isActive
+                                        ? 'bg-[#107d92]/10 color-[#107d92]'
+                                        : 'text-[#6c757d] hover:bg-[#107d92]/5 hover:text-[#107d92]'
+                                        }`}
+                                    style={{ color: isActive ? '#107d92' : undefined }}
+                                >
+                                    <Icon size={20} />
+                                    <span>{link.name}</span>
+                                </Link>
+                            </li>
+                        );
+                    })}
             </ul>
 
             <div className="mt-auto pt-6 border-t border-[#f0f0f0]">

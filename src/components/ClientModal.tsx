@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle, User, Mail, Phone, Building, MapPin, Loader2 } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useAuth } from '@/context/AuthContext';
+import ImageUpload from './ImageUpload';
 
 interface ClientModalProps {
     isOpen: boolean;
@@ -13,6 +15,7 @@ interface ClientModalProps {
 }
 
 export default function ClientModal({ isOpen, onClose, onSuccess }: ClientModalProps) {
+    const { user: currentUser } = useAuth();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
@@ -21,7 +24,8 @@ export default function ClientModal({ isOpen, onClose, onSuccess }: ClientModalP
         phone: '',
         address: '',
         brn: '',
-        vat: ''
+        vat: '',
+        photoUrl: ''
     });
 
     if (!isOpen) return null;
@@ -34,6 +38,8 @@ export default function ClientModal({ isOpen, onClose, onSuccess }: ClientModalP
             const docRef = await addDoc(collection(db, 'clients'), {
                 ...formData,
                 status: 'active',
+                addedBy: currentUser?.email || 'system',
+                businessId: currentUser?.businessId || 'N/A',
                 createdAt: serverTimestamp()
             });
             const clientData = {
@@ -45,7 +51,7 @@ export default function ClientModal({ isOpen, onClose, onSuccess }: ClientModalP
             if (onSuccess) onSuccess(clientData);
             alert('Client added successfully!');
             onClose();
-            setFormData({ name: '', company: '', email: '', phone: '', address: '', brn: '', vat: '' });
+            setFormData({ name: '', company: '', email: '', phone: '', address: '', brn: '', vat: '', photoUrl: '' });
         } catch (error) {
             console.error("Error adding client:", error);
             alert('Failed to add client.');
@@ -83,6 +89,14 @@ export default function ClientModal({ isOpen, onClose, onSuccess }: ClientModalP
                     </div>
 
                     <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto no-scrollbar">
+                        <div className="flex flex-col items-center pb-2">
+                            <ImageUpload
+                                path="clients"
+                                currentUrl={formData.photoUrl}
+                                onUploadComplete={(url) => setFormData({ ...formData, photoUrl: url })}
+                                label="Customer Avatar"
+                            />
+                        </div>
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <label className="block text-[10px] font-black text-[#6c757d] uppercase px-1">Full Name</label>

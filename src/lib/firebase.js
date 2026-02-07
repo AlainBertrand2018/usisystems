@@ -17,4 +17,8 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
 
-export { db, auth, storage };
+// Secondary Auth Instance for Admin Tasks (Prevents logout when creating users)
+const adminApp = getApps().find(a => a.name === 'adminApp') || initializeApp(firebaseConfig, 'adminApp');
+const adminAuth = getAuth(adminApp);
+
+export { db, auth, storage, adminAuth };

@@ -5,8 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Save, Loader2, Building, Mail, Phone, MapPin, Globe, CreditCard, FileText, History, Plus } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Building, Mail, Phone, MapPin, Globe, CreditCard, FileText, History, Plus, User as UserIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import ImageUpload from '@/components/ImageUpload';
 
 export default function ClientDetailPage() {
     const { id } = useParams();
@@ -103,24 +104,21 @@ export default function ClientDetailPage() {
             </div>
 
             {/* Client Context Header */}
-            <div className="bg-white rounded-[40px] shadow-sm border border-gray-100 p-8 flex flex-col md:flex-row gap-8 items-center">
-                <div className="w-24 h-24 bg-[#107d92]/10 rounded-[32px] flex items-center justify-center text-[#107d92]">
-                    <Building size={40} />
-                </div>
+            <div className="bg-white rounded-[40px] shadow-sm border border-gray-100 p-6 sm:p-8 flex flex-col md:flex-row gap-6 md:gap-8 items-center">
                 <div className="flex-1 text-center md:text-left">
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-                        <h1 className="text-3xl font-black text-[#1a1a1a]">{clientData.name}</h1>
-                        <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest">
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 sm:gap-3">
+                        <h1 className="text-2xl sm:text-3xl font-black text-[#1a1a1a]">{clientData.name}</h1>
+                        <span className="px-2 py-0.5 sm:px-3 sm:py-1 bg-emerald-50 text-emerald-600 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-widest">
                             {clientData.status || 'Active'}
                         </span>
                     </div>
-                    <p className="text-[#6c757d] font-bold text-sm mt-1">{clientData.company || 'Private Individual'}</p>
+                    <p className="text-[#6c757d] font-bold text-[12px] sm:text-sm mt-1">{clientData.company || 'Private Individual'}</p>
                     <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-4">
-                        <div className="flex items-center gap-2 text-[10px] font-black text-[#6c757d] uppercase tracking-wider bg-gray-50 px-3 py-1.5 rounded-xl">
+                        <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black text-[#6c757d] uppercase tracking-wider bg-gray-50 px-3 py-1.5 rounded-xl">
                             <FileText size={14} className="text-[#107d92]" />
                             {stats.quotes} Documents
                         </div>
-                        <div className="flex items-center gap-2 text-[10px] font-black text-[#6c757d] uppercase tracking-wider bg-gray-50 px-3 py-1.5 rounded-xl">
+                        <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black text-[#6c757d] uppercase tracking-wider bg-gray-50 px-3 py-1.5 rounded-xl">
                             <CreditCard size={14} className="text-emerald-500" />
                             Total MUR {stats.totalValue.toLocaleString()}
                         </div>
@@ -139,9 +137,18 @@ export default function ClientDetailPage() {
                                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#1a1a1a]">Business Registration</h3>
                             </div>
 
+                            <div className="flex flex-col items-center pb-4">
+                                <ImageUpload
+                                    label="Client Avatar"
+                                    path={`clients/${id}`}
+                                    currentUrl={clientData.photoUrl}
+                                    onUploadComplete={(url) => setClientData({ ...clientData, photoUrl: url })}
+                                />
+                            </div>
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-[#6c757d] uppercase px-1">Full Name / Contact Person</label>
+                                    <label className="text-[10px] font-black text-[#6c757d] uppercase px-1">Representative Name</label>
                                     <input value={clientData.name} onChange={e => setClientData({ ...clientData, name: e.target.value })} className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-[#107d92] outline-none font-bold" />
                                 </div>
                                 <div className="space-y-2">

@@ -27,7 +27,7 @@ export default function SplashPage() {
         setError(null);
 
         try {
-            await login(email); // Use the login function from AuthContext
+            await login(email, password); // Pass password
             localStorage.setItem('unideals_auth', 'true');
             if (pendingAction === 'new_quote') {
                 router.push('/quotations?action=new');
@@ -36,7 +36,13 @@ export default function SplashPage() {
             }
         } catch (err: any) {
             console.error("Login Error:", err);
-            setError("Unauthorized access. Access is restricted to pre-registered members.");
+            if (err.message === "ACCOUNT_REVOKED") {
+                setError("This account has been suspended by the administrator.");
+            } else if (err.message === "INVALID_PASSWORD") {
+                setError("Incorrect password. Please try again.");
+            } else {
+                setError("Unauthorized access. Access is restricted to pre-registered members.");
+            }
         } finally {
             setLoading(false);
         }

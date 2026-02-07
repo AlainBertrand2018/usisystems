@@ -11,6 +11,9 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, doc, setDoc } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthContext';
 import ImageUpload from './ImageUpload';
+import { validatePassword } from '@/lib/validation';
+import PasswordStrength from './PasswordStrength';
+import { RefreshCw } from 'lucide-react';
 
 interface AdminOnboardingModalProps {
     isOpen: boolean;
@@ -30,7 +33,7 @@ export default function AdminOnboardingModal({ isOpen, onClose }: AdminOnboardin
         adminLastName: '',
         adminPosition: '',
         adminWhatsapp: '',
-        adminPassword: Math.random().toString(36).slice(-8).toUpperCase(), // Initial random password
+        adminPassword: '', // Start empty or with random
         adminPhotoURL: '',
 
         // Business Details
@@ -53,10 +56,24 @@ export default function AdminOnboardingModal({ isOpen, onClose }: AdminOnboardin
         subAmount: 2100,
         subPaymentDate: new Date().toISOString().split('T')[0],
         subStartDate: new Date().toISOString().split('T')[0],
-        subNextDate: ''
+        subNextDate: '',
+        bizLogoURL: ''
     });
 
-    const handleNext = () => setStep(s => s + 1);
+    const handleNext = () => {
+        if (step === 1) {
+            const { isValid } = validatePassword(formData.adminPassword);
+            if (!isValid) {
+                alert("Password does not meet the standard format (8 mixed characters, 1 digit, 1 capital, 1 symbol).");
+                return;
+            }
+            if (!formData.adminEmail || !formData.adminFirstName || !formData.adminLastName) {
+                alert("Please fill in all required admin details.");
+                return;
+            }
+        }
+        setStep(s => s + 1);
+    };
     const handleBack = () => setStep(s => s - 1);
 
     const updateSubPrice = (type: string) => {
@@ -105,6 +122,7 @@ export default function AdminOnboardingModal({ isOpen, onClose }: AdminOnboardin
                 accountsEmail: formData.bizAccountsEmail,
                 url: formData.bizURL,
                 sector: formData.bizSector,
+                logoUrl: formData.bizLogoURL,
                 subscription: {
                     type: formData.subType,
                     amount: formData.subAmount,
@@ -131,7 +149,8 @@ export default function AdminOnboardingModal({ isOpen, onClose }: AdminOnboardin
                 businessId: bizRef.id,
                 addedBy: currentUser?.email,
                 createdAt: serverTimestamp(),
-                initialized: false // They need to set up their own profile/change password on first login
+                initialized: false,
+                status: 'active' // Important for security
             });
 
             setStep(5); // Success step
@@ -205,11 +224,26 @@ export default function AdminOnboardingModal({ isOpen, onClose }: AdminOnboardin
                                             <input value={formData.adminEmail} onChange={e => setFormData({ ...formData, adminEmail: e.target.value })} className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-[#107d92] outline-none font-bold text-sm" placeholder="admin@client.com" />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase text-[#6c757d] px-1">Temporary Password</label>
-                                            <div className="relative">
-                                                <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                                                <input readOnly value={formData.adminPassword} className="w-full bg-blue-50/50 p-4 pl-12 rounded-2xl border-2 border-dashed border-blue-200 outline-none font-black text-[#107d92]" />
+                                            <div className="flex justify-between items-center px-1">
+                                                <label className="text-[10px] font-black uppercase text-[#6c757d]">Access Key (Initial Password)</label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, adminPassword: Math.random().toString(36).slice(-2) + Math.random().toString(36).toUpperCase().slice(-2) + "@" + (Math.floor(Math.random() * 90) + 10) + "U" })}
+                                                    className="text-[10px] font-black text-[#107d92] flex items-center gap-1 hover:underline"
+                                                >
+                                                    <RefreshCw size={10} /> Regenerate
+                                                </button>
                                             </div>
+                                            <div className="relative">
+                                                <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black" size={16} />
+                                                <input
+                                                    value={formData.adminPassword}
+                                                    onChange={e => setFormData({ ...formData, adminPassword: e.target.value })}
+                                                    className="w-full bg-blue-50/50 p-4 pl-12 rounded-2xl border-2 border-dashed border-blue-200 focus:border-solid focus:border-[#107d92] focus:bg-white outline-none font-black text-[#107d92] tracking-widest"
+                                                    placeholder="Set 8+ char password"
+                                                />
+                                            </div>
+                                            <PasswordStrength password={formData.adminPassword} />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black uppercase text-[#6c757d] px-1">First Name</label>
@@ -233,6 +267,14 @@ export default function AdminOnboardingModal({ isOpen, onClose }: AdminOnboardin
 
                             {step === 2 && (
                                 <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
+                                    <div className="flex flex-col items-center pb-6 border-b border-gray-50">
+                                        <ImageUpload
+                                            path="logos"
+                                            currentUrl={formData.bizLogoURL}
+                                            onUploadComplete={(url) => setFormData({ ...formData, bizLogoURL: url })}
+                                            label="Corporate Logo"
+                                        />
+                                    </div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         <div className="space-y-2 md:col-span-2">
                                             <label className="text-[10px] font-black uppercase text-[#6c757d] px-1">Business Name</label>

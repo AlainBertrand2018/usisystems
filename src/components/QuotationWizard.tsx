@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
 import { X, ArrowRight, ArrowLeft, Check, Eye, Loader2, Search, ChevronDown, Plus, Trash2, Calendar, UserPlus, Send, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ClientModal from './ClientModal';
 import AppointmentModal from './AppointmentModal';
+import { useAuth } from '@/context/AuthContext';
 
 interface QuotationWizardProps {
     isOpen: boolean;
@@ -15,6 +16,7 @@ interface QuotationWizardProps {
 }
 
 export default function QuotationWizard({ isOpen, onClose, initialData }: QuotationWizardProps) {
+    const { user: currentUser } = useAuth();
     const [step, setStep] = useState(1);
     const [products, setProducts] = useState<any[]>([]);
     const [clients, setClients] = useState<any[]>([]);
@@ -38,17 +40,27 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
     const [showProductDropdown, setShowProductDropdown] = useState(false);
 
     useEffect(() => {
-        const unsubProducts = onSnapshot(collection(db, 'business_products'), (s) => {
+        if (!currentUser) return;
+
+        const productsQuery = currentUser.role === 'super_admin'
+            ? collection(db, 'business_products')
+            : query(collection(db, 'business_products'), where('businessId', '==', currentUser.businessId));
+
+        const clientsQuery = currentUser.role === 'super_admin'
+            ? collection(db, 'clients')
+            : query(collection(db, 'clients'), where('businessId', '==', currentUser.businessId));
+
+        const unsubProducts = onSnapshot(productsQuery, (s) => {
             setProducts(s.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         });
-        const unsubClients = onSnapshot(collection(db, 'clients'), (s) => {
+        const unsubClients = onSnapshot(clientsQuery, (s) => {
             setClients(s.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         });
         return () => {
             unsubProducts();
             unsubClients();
         };
-    }, []);
+    }, [currentUser]);
 
     useEffect(() => {
         if (isOpen) {
@@ -125,6 +137,8 @@ export default function QuotationWizard({ isOpen, onClose, initialData }: Quotat
             total: grandTotal,
             notes,
             status: 'To send',
+            businessId: currentUser?.businessId || 'N/A',
+            addedBy: currentUser?.email || 'system',
             date: serverTimestamp(),
         };
 
