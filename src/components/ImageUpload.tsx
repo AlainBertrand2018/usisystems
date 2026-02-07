@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { storage } from '@/lib/firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { Camera, Loader2, X } from 'lucide-react';
+import { Camera, Loader2, X, Link2, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ImageUploadProps {
     onUploadComplete: (url: string) => void;
@@ -15,6 +16,8 @@ interface ImageUploadProps {
 export default function ImageUpload({ onUploadComplete, currentUrl, path, label }: ImageUploadProps) {
     const [uploading, setUploading] = useState(false);
     const [preview, setPreview] = useState(currentUrl || '');
+    const [showUrlInput, setShowUrlInput] = useState(false);
+    const [urlValue, setUrlValue] = useState('');
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -49,6 +52,14 @@ export default function ImageUpload({ onUploadComplete, currentUrl, path, label 
             console.error("Upload process error:", error);
             setUploading(false);
         }
+    };
+
+    const handleUrlSubmit = () => {
+        if (!urlValue.trim()) return;
+        setPreview(urlValue);
+        onUploadComplete(urlValue);
+        setShowUrlInput(false);
+        setUrlValue('');
     };
 
     return (
@@ -87,7 +98,47 @@ export default function ImageUpload({ onUploadComplete, currentUrl, path, label 
                     </button>
                 )}
             </div>
-            <p className="text-[9px] text-gray-400 font-bold px-1 italic">Click to upload photo (PNG/JPG)</p>
+            <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-3 px-1">
+                    <p className="text-[9px] text-gray-400 font-bold italic">Click square to upload (PNG/JPG)</p>
+                    <span className="text-[9px] text-gray-200">|</span>
+                    <button
+                        type="button"
+                        onClick={() => setShowUrlInput(!showUrlInput)}
+                        className="text-[9px] text-[#107d92] font-black uppercase tracking-widest hover:text-[#0a4d5a] transition-colors"
+                    >
+                        {showUrlInput ? 'Cancel' : 'Add from URL'}
+                    </button>
+                </div>
+
+                <AnimatePresence>
+                    {showUrlInput && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100"
+                        >
+                            <Link2 size={14} className="text-gray-400 ml-1" />
+                            <input
+                                type="url"
+                                value={urlValue}
+                                onChange={(e) => setUrlValue(e.target.value)}
+                                placeholder="Paste image URL here..."
+                                className="flex-1 bg-transparent border-none outline-none text-[10px] font-bold text-gray-700 placeholder:text-gray-300"
+                                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleUrlSubmit())}
+                            />
+                            <button
+                                type="button"
+                                onClick={handleUrlSubmit}
+                                className="bg-[#107d92] text-white p-1.5 rounded-lg hover:bg-[#0a4d5a] transition-all"
+                            >
+                                <Check size={12} />
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
         </div>
     );
 }
